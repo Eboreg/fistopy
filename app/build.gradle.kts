@@ -26,7 +26,7 @@ kotlin {
 }
 
 android {
-    namespace = "us.huseli.thoucylinder"
+    namespace = "us.huseli.fistopy"
     compileSdk = 34
 
     applicationVariants.all {
