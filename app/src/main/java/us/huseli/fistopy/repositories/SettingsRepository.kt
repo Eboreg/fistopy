@@ -17,14 +17,16 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import us.huseli.retaintheme.extensions.sanitizeFilename
 import us.huseli.fistopy.Constants.PREF_APP_START_COUNT
 import us.huseli.fistopy.Constants.PREF_AUTO_IMPORT_LOCAL_MUSIC
 import us.huseli.fistopy.Constants.PREF_LIBRARY_RADIO_NOVELTY
 import us.huseli.fistopy.Constants.PREF_LOCAL_MUSIC_URI
 import us.huseli.fistopy.Constants.PREF_REGION
+import us.huseli.fistopy.Constants.PREF_START_DESTINATION
 import us.huseli.fistopy.Constants.PREF_UMLAUTIFY
+import us.huseli.fistopy.LibraryDestination
 import us.huseli.fistopy.R
+import us.huseli.fistopy.TutorialDestination
 import us.huseli.fistopy.Umlautify
 import us.huseli.fistopy.compose.DisplayType
 import us.huseli.fistopy.compose.ListType
@@ -35,6 +37,7 @@ import us.huseli.fistopy.enums.AvailabilityFilter
 import us.huseli.fistopy.enums.Region
 import us.huseli.fistopy.enums.SortOrder
 import us.huseli.fistopy.enums.TrackSortParameter
+import us.huseli.retaintheme.extensions.sanitizeFilename
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -45,7 +48,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     private val _albumSearchTerm = MutableStateFlow("")
     private val _albumSortOrder = MutableStateFlow(SortOrder.ASCENDING)
     private val _albumSortParameter = MutableStateFlow(AlbumSortParameter.ARTIST)
-    private val _appStartCount = MutableStateFlow(preferences.getInt(PREF_APP_START_COUNT, 1))
     private val _artistSearchTerm = MutableStateFlow("")
     private val _artistSortOrder = MutableStateFlow(SortOrder.ASCENDING)
     private val _artistSortParameter = MutableStateFlow(ArtistSortParameter.NAME)
@@ -74,7 +76,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     val albumSearchTerm = _albumSearchTerm.asStateFlow()
     val albumSortOrder = _albumSortOrder.asStateFlow()
     val albumSortParameter = _albumSortParameter.asStateFlow()
-    val appStartCount = _appStartCount.asStateFlow()
     val artistSearchTerm = _artistSearchTerm.asStateFlow()
     val artistSortOrder = _artistSortOrder.asStateFlow()
     val artistSortParameter = _artistSortParameter.asStateFlow()
@@ -98,6 +99,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         preferences.registerOnSharedPreferenceChangeListener(this)
     }
 
+    fun clearCustomStartDestination() {
+        setStartDestination(getDefaultStartDestination())
+    }
+
     fun createAlbumDirectory(albumTitle: String, artistString: String?): DocumentFile? {
         val subdirs = listOf(
             artistString?.sanitizeFilename() ?: context.getString(R.string.unknown_artist),
@@ -108,6 +113,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     }
 
     fun getLocalMusicDirectory(): DocumentFile? = _localMusicUri.value?.let { DocumentFile.fromTreeUri(context, it) }
+
+    fun getStartDestination(): String {
+        val default = getDefaultStartDestination()
+
+        return preferences.getString(PREF_START_DESTINATION, default) ?: default
+    }
 
     fun setAlbumSearchTerm(value: String) {
         _albumSearchTerm.value = value
@@ -176,6 +187,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         _showArtistsWithoutAlbums.value = value
     }
 
+    fun setStartDestination(value: String) {
+        preferences.edit().putString(PREF_START_DESTINATION, value).apply()
+    }
+
     fun setTrackSearchTerm(value: String) {
         _trackSearchTerm.value = value
     }
@@ -189,9 +204,14 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         preferences.edit().putBoolean(PREF_UMLAUTIFY, value).apply()
     }
 
+    private fun getDefaultStartDestination(): String {
+        return if (preferences.getInt(PREF_APP_START_COUNT, 1) == 1)
+            TutorialDestination.route
+        else LibraryDestination.route
+    }
+
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
-            PREF_APP_START_COUNT -> _appStartCount.value = preferences.getInt(PREF_APP_START_COUNT, 1)
             PREF_UMLAUTIFY -> Umlautify.setEnabled(preferences.getBoolean(PREF_UMLAUTIFY, false))
             PREF_LOCAL_MUSIC_URI -> _localMusicUri.value = preferences.getString(PREF_LOCAL_MUSIC_URI, null)?.toUri()
             PREF_LIBRARY_RADIO_NOVELTY -> _libraryRadioNovelty.value =

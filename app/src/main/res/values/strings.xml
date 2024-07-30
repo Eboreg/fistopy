@@ -57,7 +57,6 @@
     <string name="directory_for_music_downloads_from_youtube">Directory for music downloads from Youtube, and also for auto importing local music if this is enabled.</string>
     <string name="disc_number">Disc number</string>
     <string name="display_ads">Display ads</string>
-    <string name="don_t_import">Don\'t import</string>
     <string name="download">Download</string>
     <string name="download_album">Download album</string>
     <string name="downloading">Downloading</string>
@@ -154,7 +153,6 @@
     <string name="notification_channel_description">Just some basic shit.</string>
     <string name="notification_channel_name">Basic notifications</string>
     <string name="now_active_x">Now active: %1$s</string>
-    <string name="ok">OK</string>
     <string name="on_spotify">On Spotify</string>
     <string name="only_local">Only local</string>
     <string name="only_playable">Only playable</string>
@@ -192,7 +190,7 @@
     <string name="saving">Saving</string>
     <string name="scrobble_to_last_fm">Scrobble to Last.fm</string>
     <string name="search">Search</string>
-    <string name="search_and_play_songs_and_albums_on_youtube">Search songs and albums on Youtube, Discogs and Spotify, and play or download them from Youtube</string>
+    <string name="search_and_play_songs_and_albums_on_youtube">Search songs and albums on Youtube, Musicbrainz and Spotify, and play or download them from Youtube</string>
     <string name="search_for_a_region">Search for a region</string>
     <string name="select_album_cover">Select album cover</string>
     <string name="select_all">Select all</string>
@@ -231,7 +229,6 @@
     <string name="track_order">Track order</string>
     <string name="tracks">Tracks</string>
     <string name="umlautify">Umlautify</string>
-    <string name="undelete_album">Undelete album</string>
     <string name="undo">Undo</string>
     <string name="unhide_all_local_albums">Undelete all local albums</string>
     <string name="unhide_all_local_albums_description">Click here to undelete all local albums that have previously been removed.</string>
@@ -257,6 +254,13 @@
     <string name="youtube">Youtube</string>
     <string name="select_another_release">Select another release</string>
     <string name="no_alternative_releases_found">No alternative releases found.</string>
+    <string name="if_you_want_to_scrobble_your_listened_tracks_to_last_fm">If you want to scrobble your listened tracks to Last.fm, and also be able to import your top albums to the library, you may authorize this app with Last.fm here.</string>
+    <string name="you_can_always_do_this_later_in_the_settings">You can always do this later in the settings.</string>
+    <string name="authorize_with_last_fm">Authorize with Last.fm</string>
+    <string name="finish">Finish</string>
+    <string name="grant_permission">Grant permission</string>
+    <string name="grant_notification_permission_help_text">You may grant this app permission to show some notifications. These will be unintrusive and mainly used to show progress for album imports, etc.</string>
+    <string name="back">Back</string>
     <plurals name="deleted_local_album_files">
         <item quantity="one">Deleted the local files of %2$s.</item>
         <item quantity="other">Deleted the local files of %1$d albums.</item>

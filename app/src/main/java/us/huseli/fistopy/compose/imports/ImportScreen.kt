@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import us.huseli.retaintheme.isInLandscapeMode
+import us.huseli.fistopy.ImportDestination
 import us.huseli.fistopy.R
 import us.huseli.fistopy.annotatedStringResource
 import us.huseli.fistopy.compose.scrollbar.ScrollbarListState
@@ -35,6 +35,7 @@ import us.huseli.fistopy.dataclasses.callbacks.LocalAppCallbacks
 import us.huseli.fistopy.externalcontent.ImportBackend
 import us.huseli.fistopy.stringResource
 import us.huseli.fistopy.viewmodels.ExternalAlbumImportViewModel
+import us.huseli.retaintheme.isInLandscapeMode
 
 @Composable
 fun ImportScreen(
@@ -116,7 +117,10 @@ fun ImportScreen(
                         Text(annotatedStringResource(R.string.spotify_import_help_1))
                         Text(stringResource(R.string.spotify_import_help_2))
                         Button(
-                            onClick = { uriHandler.openUri(viewModel.getSpotifyAuthUrl()) },
+                            onClick = {
+                                viewModel.setStartDestination(ImportDestination.route)
+                                uriHandler.openUri(viewModel.getSpotifyAuthUrl())
+                            },
                             shape = MaterialTheme.shapes.small,
                             content = { Text(stringResource(R.string.authorize)) },
                         )

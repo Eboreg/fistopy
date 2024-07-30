@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
-import us.huseli.retaintheme.extensions.launchOnMainThread
 import us.huseli.fistopy.dataclasses.ProgressData
 import us.huseli.fistopy.dataclasses.album.ImportableAlbumUiState
 import us.huseli.fistopy.dataclasses.track.TrackUiState
@@ -24,6 +23,7 @@ import us.huseli.fistopy.interfaces.IExternalAlbumWithTracks
 import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnMainThread
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -100,6 +100,8 @@ class ExternalAlbumImportViewModel @Inject constructor(
     fun setLocalImportUri(uri: Uri) = managers.external.setLocalImportUri(uri)
 
     fun setSearchTerm(value: String) = currentBackend.albumImportHolder.setSearchTerm(value)
+
+    fun setStartDestination(value: String) = repos.settings.setStartDestination(value)
 
     fun toggleSelectAll() {
         if (isAllSelected.value) currentBackend.albumImportHolder.deselectAll()

@@ -31,6 +31,7 @@ import kotlin.text.Charsets.UTF_8
 class HTTPResponseError(val url: String, method: Request.Method, val code: Int?, message: String?) :
     Exception("HTTP $code: ${message ?: "No message"} ($method $url)")
 
+@Suppress("MemberVisibilityCanBePrivate")
 data class Request(
     val url: String,
     private val headers: Map<String, String> = emptyMap(),

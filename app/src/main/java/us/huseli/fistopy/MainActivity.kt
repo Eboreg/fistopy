@@ -1,8 +1,6 @@
 package us.huseli.fistopy
 
-import android.Manifest
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import androidx.activity.ComponentActivity
@@ -13,9 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.preference.PreferenceManager
 import dagger.hilt.android.AndroidEntryPoint
-import us.huseli.fistopy.Constants.PREF_APP_START_COUNT
 import us.huseli.fistopy.compose.App
 import us.huseli.fistopy.compose.FistopyTheme
 import us.huseli.fistopy.viewmodels.AppViewModel
@@ -38,15 +34,8 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val appStartCount = (preferences.getInt(PREF_APP_START_COUNT, 0) + 1).also {
-            preferences.edit().putInt(PREF_APP_START_COUNT, it).apply()
-        }
-        val startDestination: String = intent?.let { handleIntent(it) } ?: LibraryDestination.route
-
-        if (appStartCount <= 1 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 666)
-        }
+        viewModel.incrementAppStartCount()
+        intent?.also { handleIntent(it) }
 
         /**
          * Recomposition of the below happens at app start for unknown reasons ... hopefully, it only happens when run
@@ -58,10 +47,12 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(LocalUmlautifier provides umlautifier) {
                 FistopyTheme {
-                    App(startDestination = remember { startDestination })
+                    App(startDestination = remember { viewModel.getStartDestination() })
                 }
             }
         }
+
+        viewModel.clearCustomStartDestination()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -69,17 +60,14 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
-    private fun handleIntent(intent: Intent): String? {
+    private fun handleIntent(intent: Intent) {
         intent.data?.pathSegments?.also { pathSegments ->
             if (pathSegments.getOrNull(0) == "spotify" && pathSegments.getOrNull(1) == "import-albums") {
                 viewModel.handleSpotifyIntent(intent)
-                return ImportDestination.route
             }
             if (pathSegments.getOrNull(0) == "lastfm" && pathSegments.getOrNull(1) == "auth") {
                 viewModel.handleLastFmIntent(intent)
-                return SettingsDestination.route
             }
         }
-        return null
     }
 }

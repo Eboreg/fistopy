@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.sharp.Forward10
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.fistopy.Constants.LASTFM_AUTH_URL
 import us.huseli.fistopy.R
+import us.huseli.fistopy.SettingsDestination
 import us.huseli.fistopy.annotatedStringResource
 import us.huseli.fistopy.compose.FistopyTheme
 import us.huseli.fistopy.compose.utils.BasicHeader
@@ -81,7 +80,6 @@ fun SettingsScreen(modifier: Modifier = Modifier, viewModel: SettingsViewModel =
             }
         )
     }
-    Icons.Sharp.Forward10
 
     if (showLastFmUsernameDialog) {
         SingleStringSettingDialog(
@@ -140,8 +138,10 @@ fun SettingsScreen(modifier: Modifier = Modifier, viewModel: SettingsViewModel =
                     checked = lastFmScrobble,
                     onCheckedChange = {
                         if (it) {
-                            if (!lastFmIsAuthenticated) uriHandler.openUri(LASTFM_AUTH_URL)
-                            else viewModel.enableLastFmScrobble()
+                            if (!lastFmIsAuthenticated) {
+                                viewModel.setStartDestination(SettingsDestination.route)
+                                uriHandler.openUri(LASTFM_AUTH_URL)
+                            } else viewModel.enableLastFmScrobble()
                         } else viewModel.disableLastFmScrobble()
                     },
                 )

@@ -15,6 +15,7 @@ object Constants {
     const val PREF_APP_START_COUNT = "appStartCount"
     const val PREF_AUTO_IMPORT_LOCAL_MUSIC = "autoImportLocalMusic"
     const val PREF_CURRENT_TRACK_POSITION = "currentTrackPosition"
+    const val PREF_CURRENT_TUTORIAL_PAGE = "currentTutorialPage"
     const val PREF_LASTFM_SCROBBLE = "lastFmScrobble"
     const val PREF_LASTFM_SESSION_KEY = "lastFmSessionKey"
     const val PREF_LASTFM_USERNAME = "lastFmUsername"
@@ -25,6 +26,7 @@ object Constants {
     const val PREF_SPOTIFY_CODE_VERIFIER = "spotifyCodeVerifier"
     const val PREF_SPOTIFY_OAUTH2_TOKEN_CC = "spotifyOAuth2TokenCC"
     const val PREF_SPOTIFY_OAUTH2_TOKEN_PKCE = "spotifyOAuth2Token"
+    const val PREF_START_DESTINATION = "startDestination"
     const val PREF_UMLAUTIFY = "umlautify"
     const val PREF_WIDGET_BUTTONS = "widgetButtons"
 }

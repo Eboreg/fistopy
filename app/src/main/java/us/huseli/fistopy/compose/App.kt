@@ -39,6 +39,7 @@ import us.huseli.fistopy.PlaylistDestination
 import us.huseli.fistopy.QueueDestination
 import us.huseli.fistopy.SearchDestination
 import us.huseli.fistopy.SettingsDestination
+import us.huseli.fistopy.TutorialDestination
 import us.huseli.fistopy.compose.album.AlbumScreen
 import us.huseli.fistopy.compose.artist.ArtistScreen
 import us.huseli.fistopy.compose.imports.ImportScreen
@@ -51,6 +52,7 @@ import us.huseli.fistopy.compose.screens.DownloadsScreen
 import us.huseli.fistopy.compose.screens.QueueScreen
 import us.huseli.fistopy.compose.search.SearchScreen
 import us.huseli.fistopy.compose.settings.SettingsScreen
+import us.huseli.fistopy.compose.tutorial.Tutorial
 import us.huseli.fistopy.dataclasses.album.AlbumCallbacks
 import us.huseli.fistopy.dataclasses.album.LocalAlbumCallbacks
 import us.huseli.fistopy.dataclasses.artist.ArtistCallbacks
@@ -77,13 +79,11 @@ fun App(
     val density = LocalDensity.current
 
     val currentTrackExists by viewModel.currentTrackExists.collectAsStateWithLifecycle()
-    val appStartCount by viewModel.appStartCount.collectAsStateWithLifecycle()
     val contentSize by viewModel.contentSize.collectAsStateWithLifecycle()
 
     var activeMenuItemId by rememberSaveable { mutableStateOf<MenuItemId?>(MenuItemId.LIBRARY) }
     val modalCoverState = rememberModalCoverState(contentSize = contentSize)
     val snackbarBottomPadding = remember(currentTrackExists) { if (currentTrackExists) 80.dp else 0.dp }
-    var showWelcomeDialog by rememberSaveable { mutableStateOf(appStartCount <= 1) }
 
     /** Weird onBackPressedCallback shit begins */
     val onBackPressedCallback = remember {
@@ -204,12 +204,6 @@ fun App(
         )
     }
 
-    AskMusicImportPermissions()
-
-    if (showWelcomeDialog) {
-        WelcomeDialog(onCancel = { showWelcomeDialog = false })
-    }
-
     CompositionLocalProvider(
         LocalAlbumCallbacks provides albumCallbacks,
         LocalAppCallbacks provides appCallbacks,
@@ -286,6 +280,11 @@ fun App(
                 composable(route = SettingsDestination.route) {
                     activeMenuItemId = SettingsDestination.menuItemId
                     SettingsScreen()
+                }
+
+                composable(route = TutorialDestination.route) {
+                    activeMenuItemId = null
+                    Tutorial()
                 }
             }
 

@@ -3,6 +3,7 @@ package us.huseli.fistopy.managers
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Suppress("unused")
 @Singleton
 class Managers @Inject constructor(
     val external: ExternalContentManager,

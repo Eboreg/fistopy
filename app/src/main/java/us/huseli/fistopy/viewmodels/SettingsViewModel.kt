@@ -6,12 +6,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import us.huseli.retaintheme.extensions.launchOnIOThread
 import us.huseli.fistopy.Umlautify
 import us.huseli.fistopy.dataclasses.spotify.SpotifyUserProfile
 import us.huseli.fistopy.enums.Region
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnIOThread
 import javax.inject.Inject
 
 @HiltViewModel
@@ -45,9 +45,7 @@ class SettingsViewModel @Inject constructor(
         _spotifyUserProfile.value = null
     }
 
-    fun importNewLocalAlbums() {
-        launchOnIOThread { managers.library.importNewLocalAlbums() }
-    }
+    fun importNewLocalAlbums() = launchOnIOThread { managers.library.importNewLocalAlbums() }
 
     fun setAutoImportLocalMusic(value: Boolean) = repos.settings.setAutoImportLocalMusic(value)
 
@@ -57,12 +55,12 @@ class SettingsViewModel @Inject constructor(
 
     fun setRegion(value: Region) = repos.settings.setRegion(value)
 
+    fun setStartDestination(value: String) = repos.settings.setStartDestination(value)
+
     fun setUmlautify(value: Boolean) = repos.settings.setUmlautify(value)
 
-    fun unhideLocalAlbums() {
-        launchOnIOThread {
-            repos.album.unhideLocalAlbums()
-            repos.message.onUnhideLocalAlbums()
-        }
+    fun unhideLocalAlbums() = launchOnIOThread {
+        repos.album.unhideLocalAlbums()
+        repos.message.onUnhideLocalAlbums()
     }
 }

@@ -2,12 +2,12 @@ package us.huseli.fistopy
 
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import us.huseli.retaintheme.navigation.AbstractDestination
-import us.huseli.retaintheme.navigation.AbstractSimpleDestination
 import us.huseli.fistopy.Constants.NAV_ARG_ALBUM
 import us.huseli.fistopy.Constants.NAV_ARG_ARTIST
 import us.huseli.fistopy.Constants.NAV_ARG_PLAYLIST
 import us.huseli.fistopy.compose.MenuItemId
+import us.huseli.retaintheme.navigation.AbstractDestination
+import us.huseli.retaintheme.navigation.AbstractSimpleDestination
 
 abstract class Destination(override val menuItemId: MenuItemId) :
     AbstractSimpleDestination<MenuItemId>(menuItemId.route, menuItemId)
@@ -49,3 +49,5 @@ object PlaylistDestination : AbstractDestination<MenuItemId>() {
 
     fun route(playlistId: String) = "playlist/$playlistId"
 }
+
+object TutorialDestination : AbstractSimpleDestination<MenuItemId>("tutorial")
