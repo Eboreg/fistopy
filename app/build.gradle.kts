@@ -2,8 +2,8 @@ import org.gradle.configurationcache.extensions.capitalized
 import java.io.FileInputStream
 import java.util.Properties
 
-val currentVersionCode = 19
-val currentVersionName = "0.8.0"
+val currentVersionCode = 20
+val currentVersionName = "0.9.0"
 val keystoreProperties = Properties()
 val secretsProperties = Properties()
 
