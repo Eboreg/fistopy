@@ -1,27 +1,15 @@
 package us.huseli.fistopy
 
-import coil.ImageLoader
-import coil.annotation.ExperimentalCoilApi
-import coil.decode.DataSource
-import coil.decode.ImageSource
-import coil.disk.DiskCache
-import coil.fetch.FetchResult
-import coil.fetch.Fetcher
-import coil.fetch.SourceResult
+import coil.intercept.Interceptor
 import coil.map.Mapper
+import coil.request.ImageResult
 import coil.request.Options
 import coil.size.pxOrElse
-import okio.buffer
-import okio.source
-import us.huseli.fistopy.Constants.CUSTOM_USER_AGENT
 import us.huseli.fistopy.Constants.IMAGE_THUMBNAIL_MAX_WIDTH_PX
-import us.huseli.fistopy.dataclasses.CoverArtArchiveResponse
 import us.huseli.fistopy.dataclasses.MediaStoreImage
 import us.huseli.fistopy.interfaces.IAlbumArtOwner
 import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
 import us.huseli.fistopy.interfaces.ILogger
-import java.io.InputStream
-import java.net.HttpURLConnection
 
 abstract class AbstractThumbnailMapper<T : Any> : Mapper<T, String> {
     fun shouldGetFullImage(options: Options): Boolean {
@@ -47,122 +35,29 @@ class MediaStoreImageMapper : AbstractThumbnailMapper<MediaStoreImage>() {
 }
 
 
-@OptIn(ExperimentalCoilApi::class)
-class CoverArtArchiveFetcher(
-    private val data: IHasMusicBrainzIds,
-    private val options: Options,
-    private val imageLoader: ImageLoader,
-) : Fetcher, ILogger {
-    private val shouldGetFullImage: Boolean
-        get() {
-            val height = options.size.height.pxOrElse { 0 }
-            val width = options.size.width.pxOrElse { 0 }
-            return height > IMAGE_THUMBNAIL_MAX_WIDTH_PX || width > IMAGE_THUMBNAIL_MAX_WIDTH_PX
-        }
+class CoverArtArchiveInterceptor : Interceptor, ILogger {
+    override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
+        val data = chain.request.data
+        val size = maxOf(
+            chain.size.height.pxOrElse { 250 }.roundToClosest(listOf(250, 500, 1200)),
+            chain.size.width.pxOrElse { 250 }.roundToClosest(listOf(250, 500, 1200)),
+        )
 
-    private suspend fun fetch(coverArtArchiveUrl: String): FetchResult {
-        val readSnapshot = imageLoader.diskCache?.openSnapshot(coverArtArchiveUrl)
-
-        if (readSnapshot != null) {
-            log("Got snapshot from disk cache (data=${readSnapshot.data})")
-
-            return SourceResult(
-                source = ImageSource(
-                    file = readSnapshot.data,
-                    fileSystem = imageLoader.diskCache!!.fileSystem,
-                    diskCacheKey = coverArtArchiveUrl,
-                    closeable = readSnapshot,
-                ),
-                mimeType = "image/jpeg",
-                dataSource = DataSource.DISK,
+        if (data is IHasMusicBrainzIds) {
+            val coverArtUrls = listOfNotNull(
+                data.musicBrainzReleaseId?.let { "https://coverartarchive.org/release/$it/front-$size" },
+                data.musicBrainzReleaseGroupId?.let { "https://coverartarchive.org/release-group/$it/front-$size" },
             )
-        }
 
-        val headers = mapOf("User-Agent" to CUSTOM_USER_AGENT)
-        val albumArt = Request(url = coverArtArchiveUrl, headers = headers)
-            .getObject<CoverArtArchiveResponse>()
-            .images
-            .first { it.front }
-            .toMediaStoreImage()
-        val url = if (shouldGetFullImage) albumArt.fullUriString else albumArt.thumbnailUriString
-        val request = Request(url)
-
-        log("Got $url from coverartarchive, building new request (size=${options.size})")
-
-        val inputStream = request.getInputStream()
-        val writeSnapshot = writeToDiskCache(
-            diskCacheKey = coverArtArchiveUrl,
-            responseCode = request.responseCode,
-            inputStream = inputStream,
-        )
-
-        if (writeSnapshot != null) {
-            return SourceResult(
-                source = ImageSource(
-                    file = writeSnapshot.data,
-                    fileSystem = imageLoader.diskCache!!.fileSystem,
-                    diskCacheKey = coverArtArchiveUrl,
-                    closeable = writeSnapshot,
-                ),
-                mimeType = "image/jpeg",
-                dataSource = DataSource.NETWORK,
-            )
-        }
-
-        return SourceResult(
-            source = ImageSource(
-                source = inputStream.source().buffer(),
-                context = options.context,
-            ),
-            mimeType = "image/jpeg",
-            dataSource = DataSource.NETWORK,
-        )
-    }
-
-    override suspend fun fetch(): FetchResult? {
-        val coverArtArchiveUrls = listOfNotNull(
-            data.musicBrainzReleaseGroupId?.let { "https://coverartarchive.org/release-group/$it" },
-            data.musicBrainzReleaseId?.let { "https://coverartarchive.org/release/$it" },
-        )
-
-        for (coverArtArchiveUrl in coverArtArchiveUrls) {
-            try {
-                return fetch(coverArtArchiveUrl)
-            } catch (e: Exception) {
-                logError(e)
-            }
-        }
-
-        return null
-    }
-
-    private fun writeToDiskCache(
-        diskCacheKey: String,
-        responseCode: Int?,
-        inputStream: InputStream,
-    ): DiskCache.Snapshot? {
-        val editor = imageLoader.diskCache?.openEditor(diskCacheKey) ?: return null
-
-        try {
-            if (responseCode != HttpURLConnection.HTTP_NOT_MODIFIED) {
-                imageLoader.diskCache?.fileSystem?.write(editor.data) {
-                    write(inputStream.readBytes())
+            for (url in coverArtUrls) {
+                try {
+                    return chain.proceed(chain.request.newBuilder(chain.request.context).data(url).build())
+                } catch (e: Exception) {
+                    logError(e)
                 }
             }
-            return editor.commitAndOpenSnapshot()
-        } catch (e: Exception) {
-            try {
-                editor.abort()
-            } catch (_: Exception) {
-            }
-            throw e
         }
-    }
 
-    class Factory : Fetcher.Factory<IHasMusicBrainzIds> {
-        override fun create(data: IHasMusicBrainzIds, options: Options, imageLoader: ImageLoader): Fetcher? {
-            if (data.musicBrainzReleaseId == null && data.musicBrainzReleaseGroupId == null) return null
-            return CoverArtArchiveFetcher(data, options, imageLoader)
-        }
+        return chain.proceed(chain.request)
     }
 }

@@ -30,18 +30,18 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import us.huseli.retaintheme.extensions.formattedString
-import us.huseli.retaintheme.extensions.nullIfEmpty
-import us.huseli.retaintheme.extensions.pow
-import us.huseli.retaintheme.extensions.scaleToMaxSize
-import us.huseli.retaintheme.extensions.square
-import us.huseli.retaintheme.extensions.toBitmap
 import us.huseli.fistopy.Constants.IMAGE_FULL_MAX_WIDTH_DP
 import us.huseli.fistopy.Constants.IMAGE_THUMBNAIL_MAX_WIDTH_DP
 import us.huseli.fistopy.dataclasses.artist.IArtist
 import us.huseli.fistopy.dataclasses.artist.IArtistCredit
 import us.huseli.fistopy.dataclasses.artist.ISavedArtist
 import us.huseli.fistopy.interfaces.ILogger
+import us.huseli.retaintheme.extensions.formattedString
+import us.huseli.retaintheme.extensions.nullIfEmpty
+import us.huseli.retaintheme.extensions.pow
+import us.huseli.retaintheme.extensions.scaleToMaxSize
+import us.huseli.retaintheme.extensions.square
+import us.huseli.retaintheme.extensions.toBitmap
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -53,6 +53,13 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 object Logger : ILogger
+
+fun Int.roundToClosest(thresholds: Iterable<Int>): Int {
+    for (threshold in thresholds.sorted()) {
+        if (threshold >= this) return threshold
+    }
+    return thresholds.maxOf { it }
+}
 
 @Suppress("UNCHECKED_CAST")
 fun Map<*, *>.yqueryString(key: String, failSilently: Boolean = true): String? {
@@ -274,6 +281,8 @@ inline fun <reified T> String.fromJson(): T = gson.fromJson(this, T::class.java)
 fun String.stripArtist(artist: String?): String =
     if (artist == null) this
     else replace(Regex("^\\W*$artist\\W+(.*)$", RegexOption.IGNORE_CASE), "$1")
+
+fun CharSequence.toCamelCase() = replace(Regex("[-_](\\p{L})")) { it.groupValues[1].uppercase() }
 
 
 /** MEDIAFORMAT *******************************************************************************************************/
