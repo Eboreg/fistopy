@@ -21,6 +21,7 @@ import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.withUpdates
 import us.huseli.fistopy.dataclasses.artist.Artist
 import us.huseli.fistopy.dataclasses.artist.IArtist
 import us.huseli.fistopy.dataclasses.artist.joined
@@ -157,24 +158,25 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
                 isInLibrary = combo.album.isInLibrary,
             )?.match(combo)
         }
-        val updatedCombo = matches?.filter { it.distance <= maxDistance }
-            ?.minByOrNull { it.distance }
-            ?.albumCombo
-            ?.let {
-                combo.updateWith(
-                    other = it,
-                    trackMergeStrategy = trackMergeStrategy,
-                    albumArtistUpdateStrategy = albumArtistUpdateStrategy,
-                    trackArtistUpdateStrategy = trackArtistUpdateStrategy,
-                    tagUpdateStrategy = tagUpdateStrategy,
+        val matchedCombo = matches?.filter { it.distance <= maxDistance }?.minByOrNull { it.distance }?.albumCombo
+        val updatedCombo = matchedCombo?.let {
+            combo.withUpdates {
+                mergeAlbum(it.album)
+                mergeTrackCombos(
+                    other = it.trackCombos,
+                    mergeStrategy = trackMergeStrategy,
+                    artistUpdateStrategy = trackArtistUpdateStrategy,
                 )
+                mergeTags(it.tags, tagUpdateStrategy)
+                mergeArtists(it.artists, albumArtistUpdateStrategy)
             }
+        }
         val albumArt = updatedCombo?.album?.albumArt ?: getCoverArtArchiveImage(
             releaseId = updatedCombo?.album?.musicBrainzReleaseId,
             releaseGroupId = updatedCombo?.album?.musicBrainzReleaseGroupId,
         )?.toMediaStoreImage()
 
-        return updatedCombo?.copy(album = updatedCombo.album.withAlbumArt(albumArt = albumArt))
+        return updatedCombo?.withUpdates { setAlbumArt(albumArt) }
     }
 
     fun recordingSearchChannel(searchParams: SearchParams) =

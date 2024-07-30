@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.takeWhile
-import us.huseli.retaintheme.extensions.filterValuesNotNull
 import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.AbstractSpotifyOAuth2
 import us.huseli.fistopy.DeferredRequestJob
@@ -31,6 +30,7 @@ import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.withUpdates
 import us.huseli.fistopy.dataclasses.artist.Artist
 import us.huseli.fistopy.dataclasses.artist.IArtist
 import us.huseli.fistopy.dataclasses.artist.IArtistCredit
@@ -57,6 +57,7 @@ import us.huseli.fistopy.enums.ListUpdateStrategy
 import us.huseli.fistopy.externalcontent.SearchParams
 import us.huseli.fistopy.fromJson
 import us.huseli.fistopy.interfaces.ILogger
+import us.huseli.retaintheme.extensions.filterValuesNotNull
 import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -200,15 +201,19 @@ class SpotifyRepository @Inject constructor(
             isLocal = combo.album.isLocal,
             isInLibrary = combo.album.isInLibrary,
         )?.match(combo)
+        val matchedCombo = match?.takeIf { it.distance <= maxDistance }?.albumCombo
 
-        return match?.takeIf { it.distance <= maxDistance }?.albumCombo?.let {
-            combo.updateWith(
-                other = it,
-                trackMergeStrategy = trackMergeStrategy,
-                albumArtistUpdateStrategy = albumArtistUpdateStrategy,
-                trackArtistUpdateStrategy = trackArtistUpdateStrategy,
-                tagUpdateStrategy = tagUpdateStrategy,
-            )
+        return matchedCombo?.let {
+            combo.withUpdates {
+                mergeAlbum(it.album)
+                mergeTrackCombos(
+                    other = it.trackCombos,
+                    mergeStrategy = trackMergeStrategy,
+                    artistUpdateStrategy = trackArtistUpdateStrategy,
+                )
+                mergeTags(other = it.tags, updateStrategy = tagUpdateStrategy)
+                mergeArtists(other = it.artists, updateStrategy = albumArtistUpdateStrategy)
+            }
         }
     }
 
