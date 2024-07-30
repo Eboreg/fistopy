@@ -1,4 +1,4 @@
-import dagger.hilt.android.plugin.util.capitalize
+import org.gradle.configurationcache.extensions.capitalized
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -31,8 +31,9 @@ android {
 
     applicationVariants.all {
         outputs.all {
-            val variantName = name
-            val taskSuffix = variantName.capitalize()
+            val taskSuffix = name
+                .capitalized()
+                .replace(Regex("[-_](\\p{L})")) { it.groupValues[1].uppercase() }
             val assembleTaskName = "assemble$taskSuffix"
             val bundleTaskName = "bundle$taskSuffix"
 
@@ -41,7 +42,7 @@ android {
                     Action {
                         val inDir = outputFile.parentFile
                         val outDir =
-                            File("${inDir?.parentFile?.path}/$variantName-$versionName").apply { mkdirs() }
+                            File("${inDir?.parentFile?.path}/$name-$versionName").apply { mkdirs() }
 
                         inDir?.listFiles()?.filter { it.isFile && it.name.contains(versionName) }?.forEach { file ->
                             file.copyTo(File(outDir, file.name), overwrite = true)
@@ -50,8 +51,12 @@ android {
                 )
             }
 
-            tasks[assembleTaskName]?.finalizedBy(archiveTask)
-            tasks[bundleTaskName]?.finalizedBy(archiveTask)
+            try {
+                tasks[assembleTaskName]?.finalizedBy(archiveTask)
+                tasks[bundleTaskName]?.finalizedBy(archiveTask)
+            } catch (e: UnknownTaskException) {
+                logger.error(e.toString(), e)
+            }
         }
     }
 
@@ -65,7 +70,6 @@ android {
     }
 
     defaultConfig {
-        manifestPlaceholders += mapOf("redirectSchemeName" to "klaatu")
         val discogsApiKey = secretsProperties["discogsApiKey"] as String
         val discogsApiSecret = secretsProperties["discogsApiSecret"] as String
         val spotifyClientId = secretsProperties["spotifyClientId"] as String
@@ -73,6 +77,7 @@ android {
         val lastFmApiKey = secretsProperties["lastFmApiKey"] as String
         val lastFmApiSecret = secretsProperties["lastFmApiSecret"] as String
 
+        manifestPlaceholders += mapOf("redirectSchemeName" to "klaatu")
         applicationId = "us.huseli.fistopy"
         minSdk = 26
         targetSdk = 34
@@ -92,7 +97,6 @@ android {
         buildConfigField("String", "spotifyClientSecret", "\"$spotifyClientSecret\"")
         buildConfigField("String", "lastFmApiKey", "\"$lastFmApiKey\"")
         buildConfigField("String", "lastFmApiSecret", "\"$lastFmApiSecret\"")
-        signingConfig = signingConfigs.getByName("release")
     }
 
     buildTypes {
@@ -113,6 +117,7 @@ android {
             manifestPlaceholders["hostName"] = "fistopy"
             manifestPlaceholders["redirectHostName"] = "fistopy"
             buildConfigField("String", "hostName", "\"fistopy\"")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -128,6 +133,33 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    flavorDimensions += "version"
+
+    productFlavors {
+        create("sentry") {
+            applicationIdSuffix = ".sentry"
+            versionNameSuffix = "-sentry"
+
+            dependencies {
+                "sentryImplementation"(libs.sentry)
+                "sentryImplementation"(libs.sentry.compose)
+            }
+
+            sentry {
+                org.set("huselius")
+                projectName.set("fistopy")
+                // this will upload your source code to Sentry to show it as part of the stack traces
+                // disable if you don't want to expose your sources
+                includeSourceContext.set(true)
+                ignoredFlavors.set(setOf("nosentry"))
+            }
+        }
+        create("nosentry") {
+            applicationIdSuffix = ".nosentry"
+            versionNameSuffix = "-nosentry"
+        }
     }
 }
 
@@ -213,18 +245,4 @@ dependencies {
     // Coil for async image loading:
     // implementation(libs.coil.base)
     implementation(libs.coil.compose)
-
-    // Sentry
-    implementation(libs.sentry)
-    implementation(libs.sentry.compose)
-}
-
-
-sentry {
-    org.set("huselius")
-    projectName.set("fistopy")
-
-    // this will upload your source code to Sentry to show it as part of the stack traces
-    // disable if you don't want to expose your sources
-    includeSourceContext.set(true)
 }

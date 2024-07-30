@@ -27,22 +27,18 @@
         android:theme="@style/Theme.Fistopy.Starting"
         tools:targetApi="31">
 
-        <!-- Required: set your sentry.io project identifier (DSN) -->
         <meta-data
-            android:name="io.sentry.dsn"
-            android:value="https://5041e4581e3c61008722fb79f5528e26@o453550.ingest.us.sentry.io/4507448607113216" />
-        <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
-        <meta-data
-            android:name="io.sentry.traces.user-interaction.enable"
-            android:value="true" />
-        <!-- enable screenshot for crashes -->
-        <meta-data
-            android:name="io.sentry.attach-screenshot"
-            android:value="true" />
-        <!-- enable view hierarchy for crashes -->
-        <meta-data
-            android:name="io.sentry.attach-view-hierarchy"
-            android:value="true" />
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+
+        <provider
+            android:authorities="${applicationId}.SentryInitProvider"
+            android:name="io.sentry.android.core.SentryInitProvider"
+            tools:node="remove" />
+        <provider
+            android:authorities="${applicationId}.SentryPerformanceProvider"
+            android:name="io.sentry.android.core.SentryPerformanceProvider"
+            tools:node="remove" />
 
         <service
             android:name=".PlaybackService"

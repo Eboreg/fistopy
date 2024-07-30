@@ -255,6 +255,8 @@
     <string name="you_need_to_configure_your_last_fm_username_in_the_settings">You need to configure your Last.fm username in the settings.</string>
     <string name="you_need_to_select_your_local_music_root_folder">You need to select your local music root folder.</string>
     <string name="youtube">Youtube</string>
+    <string name="select_another_release">Select another release</string>
+    <string name="no_alternative_releases_found">No alternative releases found.</string>
     <plurals name="deleted_local_album_files">
         <item quantity="one">Deleted the local files of %2$s.</item>
         <item quantity="other">Deleted the local files of %1$d albums.</item>
