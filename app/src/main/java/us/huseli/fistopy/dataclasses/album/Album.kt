@@ -54,21 +54,7 @@ data class Album(
         youtubePlaylist = youtubePlaylist,
     )
 
-    override fun mergeWith(other: IAlbum) = copy(
-        albumArt = other.albumArt ?: albumArt,
-        albumType = other.albumType ?: albumType,
-        musicBrainzReleaseGroupId = other.musicBrainzReleaseGroupId ?: musicBrainzReleaseGroupId,
-        musicBrainzReleaseId = other.musicBrainzReleaseId ?: musicBrainzReleaseId,
-        spotifyId = other.spotifyId ?: spotifyId,
-        spotifyImage = other.spotifyImage ?: spotifyImage,
-        youtubePlaylist = other.youtubePlaylist ?: youtubePlaylist,
-    )
-
     override fun toString(): String = title
-
-    override fun withAlbumArt(albumArt: MediaStoreImage?) = copy(albumArt = albumArt)
-
-    override fun withIsinLibrary(isInLibrary: Boolean) = copy(isInLibrary = isInLibrary)
 }
 
 data class UnsavedAlbum(
@@ -108,18 +94,4 @@ data class UnsavedAlbum(
     )
 
     override fun asUnsavedAlbum(): UnsavedAlbum = this
-
-    override fun mergeWith(other: IAlbum) = copy(
-        albumArt = other.albumArt ?: albumArt,
-        albumType = other.albumType ?: albumType,
-        musicBrainzReleaseGroupId = other.musicBrainzReleaseGroupId ?: musicBrainzReleaseGroupId,
-        musicBrainzReleaseId = other.musicBrainzReleaseId ?: musicBrainzReleaseId,
-        spotifyId = other.spotifyId ?: spotifyId,
-        spotifyImage = other.spotifyImage ?: spotifyImage,
-        youtubePlaylist = other.youtubePlaylist ?: youtubePlaylist,
-    )
-
-    override fun withAlbumArt(albumArt: MediaStoreImage?) = copy(albumArt = albumArt)
-
-    override fun withIsinLibrary(isInLibrary: Boolean) = copy(isInLibrary = isInLibrary)
 }

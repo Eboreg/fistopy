@@ -11,7 +11,6 @@ import us.huseli.fistopy.dataclasses.tag.Tag
 import us.huseli.fistopy.dataclasses.track.ITrackCombo
 import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.track.TrackCombo
-import us.huseli.fistopy.dataclasses.track.withTracks
 import kotlin.math.abs
 
 enum class TrackMergeStrategy { KEEP_LEAST, KEEP_MOST, KEEP_SELF, KEEP_OTHER }
@@ -30,11 +29,6 @@ data class UnsavedAlbumWithTracksCombo(
 
     fun match(other: IAlbumWithTracksCombo<IAlbum>) =
         AlbumMatch(distance = getDistance(other), albumCombo = this)
-
-    override fun updateWith(album: IAlbum?, tracks: List<Track>?) = copy(
-        album = album?.asUnsavedAlbum() ?: this.album,
-        trackCombos = tracks?.let { trackCombos.withTracks(it) } ?: trackCombos,
-    )
 
     private fun getDistance(other: IAlbumWithTracksCombo<*>): Double {
         var result = 0.0
@@ -76,9 +70,4 @@ data class AlbumWithTracksCombo(
     override val trackCombos: List<TrackCombo> = emptyList<TrackCombo>().let { combos ->
         combos.map { it.copy(albumArtists = artists) }
     },
-) : IAlbumWithTracksCombo<Album>, ISavedAlbumCombo {
-    override fun updateWith(album: IAlbum?, tracks: List<Track>?) = copy(
-        album = album?.asSavedAlbum() ?: this.album,
-        trackCombos = tracks?.let { trackCombos.withTracks(it) } ?: trackCombos,
-    )
-}
+) : IAlbumWithTracksCombo<Album>, ISavedAlbumCombo
