@@ -80,8 +80,10 @@ abstract class AbstractSearchHolder<T : IStringIdItem> : AbstractHolder<T>() {
     }
 
     fun setSearchParams(value: SearchParams) {
-        _searchParams.value = value
-        _items.value = emptyList()
-        _selectedItemIds.value = emptyList()
+        if (value != _searchParams.value) {
+            _searchParams.value = value
+            _items.value = emptyList()
+            _selectedItemIds.value = emptyList()
+        }
     }
 }

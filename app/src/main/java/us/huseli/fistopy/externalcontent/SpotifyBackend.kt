@@ -93,6 +93,5 @@ class SpotifyBackend(private val repos: Repositories) : IExternalSearchBackend<S
                 channel.close()
             }
         }
-
     }
 }

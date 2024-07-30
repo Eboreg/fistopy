@@ -31,7 +31,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.collections.immutable.ImmutableList
-import us.huseli.retaintheme.extensions.nullIfBlank
 import us.huseli.fistopy.R
 import us.huseli.fistopy.compose.FistopyTheme
 import us.huseli.fistopy.compose.utils.HorizontalCardList
@@ -42,6 +41,7 @@ import us.huseli.fistopy.enums.AlbumType
 import us.huseli.fistopy.interfaces.IExternalAlbum
 import us.huseli.fistopy.stringResource
 import us.huseli.fistopy.umlautify
+import us.huseli.retaintheme.extensions.nullIfBlank
 
 @Composable
 fun OtherArtistAlbumsHeader(
@@ -55,7 +55,7 @@ fun OtherArtistAlbumsHeader(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth()
     ) {
-        text()
+        Column(modifier = Modifier.weight(1f), content = { text() })
         SmallOutlinedButton(
             onClick = onExpandToggleClick,
             text = stringResource(if (!expand) R.string.show_all else R.string.hide),

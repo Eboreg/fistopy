@@ -33,7 +33,7 @@ fun BasicHeader(title: String, trailingContent: @Composable () -> Unit = {}) {
             )
             Text(
                 text = title,
-                style = if (title.length > 30) FistopyTheme.typography.titleMedium else FistopyTheme.typography.headlineSmall,
+                style = if (title.length > 25) FistopyTheme.typography.titleMedium else FistopyTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

@@ -20,7 +20,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.fistopy.R
 import us.huseli.fistopy.compose.DisplayType
 import us.huseli.fistopy.compose.ListDisplayTypeButton
@@ -32,8 +31,10 @@ import us.huseli.fistopy.dataclasses.album.LocalAlbumCallbacks
 import us.huseli.fistopy.dataclasses.callbacks.LocalAppDialogCallbacks
 import us.huseli.fistopy.externalcontent.ExternalListType
 import us.huseli.fistopy.externalcontent.SearchCapability
+import us.huseli.fistopy.externalcontent.SearchParams
 import us.huseli.fistopy.stringResource
 import us.huseli.fistopy.viewmodels.ExternalSearchViewModel
+import us.huseli.retaintheme.isInLandscapeMode
 
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier, viewModel: ExternalSearchViewModel = hiltViewModel()) {
@@ -91,7 +92,7 @@ fun SearchScreen(modifier: Modifier = Modifier, viewModel: ExternalSearchViewMod
 
             SearchFieldSection(
                 capabilities = searchCapabilities,
-                currentValues = searchParams,
+                currentValues = searchParams ?: SearchParams(),
                 onSearch = remember { { viewModel.setSearchParams(it) } },
                 listType = listType,
             )

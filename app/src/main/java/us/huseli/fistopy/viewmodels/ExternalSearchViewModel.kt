@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.plus
-import us.huseli.retaintheme.extensions.launchOnIOThread
 import us.huseli.fistopy.AlbumDownloadTask
 import us.huseli.fistopy.TrackDownloadTask
 import us.huseli.fistopy.dataclasses.album.AlbumCallbacks
@@ -35,6 +35,7 @@ import us.huseli.fistopy.interfaces.IExternalAlbum
 import us.huseli.fistopy.interfaces.IStringIdItem
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnIOThread
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,9 +51,6 @@ class ExternalSearchViewModel @Inject constructor(
     private val _currentHolder: AbstractSearchHolder<out IStringIdItem>
         get() = managers.external.getSearchBackend(_backendKey.value).getSearchHolder(_listType.value)
     private val _listType = MutableStateFlow<ExternalListType>(ExternalListType.ALBUMS)
-    private val _albumSearchParams = MutableStateFlow(SearchParams())
-    private val _trackSearchParams = MutableStateFlow(SearchParams())
-
     private val _backend = _backendKey.mapLatest { managers.external.getSearchBackend(it) }
 
     private val _holder: Flow<AbstractSearchHolder<out IStringIdItem>> =
@@ -65,13 +63,11 @@ class ExternalSearchViewModel @Inject constructor(
     override val baseAlbumUiStates: StateFlow<ImmutableList<ImportableAlbumUiState>> = _backend
         .flatMapLatest { it.albumSearchHolder.currentPageItems.map { states -> states.toImmutableList() } }
         .stateWhileSubscribed(persistentListOf())
-
     override val baseTrackUiStates: StateFlow<ImmutableList<TrackUiState>> = _trackSearchHolder
         .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
         .stateWhileSubscribed(persistentListOf())
 
     override val selectedAlbumIds: Flow<List<String>> = _albumSearchHolder.flatMapLatest { it.selectedItemIds }
-
     override val selectedTrackStateIds: StateFlow<Collection<String>> =
         _trackSearchHolder.flatMapLatest { it.selectedItemIds }.stateWhileSubscribed(emptyList())
 
@@ -83,12 +79,12 @@ class ExternalSearchViewModel @Inject constructor(
     val listType = _listType.asStateFlow()
     val searchCapabilities = _holder.mapLatest { it.searchCapabilities }.stateWhileSubscribed(emptyList())
 
-    val searchParams = _listType.flatMapLatest {
-        when (it) {
-            ExternalListType.ALBUMS -> _albumSearchParams
-            ExternalListType.TRACKS -> _trackSearchParams
+    val searchParams = combine(_listType, _backend) { listType, backend ->
+        when (listType) {
+            ExternalListType.ALBUMS -> backend.albumSearchHolder.searchParams
+            ExternalListType.TRACKS -> backend.trackSearchHolder.searchParams
         }
-    }.stateWhileSubscribed(SearchParams())
+    }.flattenMerge().stateWhileSubscribed(SearchParams())
 
     init {
         launchOnIOThread {
@@ -138,10 +134,6 @@ class ExternalSearchViewModel @Inject constructor(
     }
 
     fun setSearchParams(value: SearchParams) {
-        when (_listType.value) {
-            ExternalListType.ALBUMS -> _albumSearchParams.value = value
-            ExternalListType.TRACKS -> _trackSearchParams.value = value
-        }
         _currentHolder.setSearchParams(value)
     }
 }
