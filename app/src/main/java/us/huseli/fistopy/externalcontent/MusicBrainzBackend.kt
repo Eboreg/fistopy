@@ -57,6 +57,5 @@ class MusicBrainzBackend(private val repos: Repositories) : IExternalSearchBacke
                 channel.close()
             }
         }
-
     }
 }

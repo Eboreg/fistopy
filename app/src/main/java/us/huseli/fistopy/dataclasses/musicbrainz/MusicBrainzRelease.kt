@@ -149,6 +149,9 @@ data class MusicBrainzRelease(
             .map { (genre, instances) -> genre.copy(count = instances.sumOf { it.count }) }
             .sortedByDescending { it.count }
 
+    val mediaFormat: String?
+        get() = media.mapNotNull { it.format }.toSet().takeIf { it.isNotEmpty() }?.joinToString("/")
+
     override val albumType: AlbumType?
         get() = super.albumType ?: releaseGroup?.albumType
 

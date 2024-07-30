@@ -101,6 +101,7 @@ fun AlbumBottomSheet(
                 onDismissRequest()
             },
         )
+
         if (uiState.isPlayable) BottomSheetItem(
             icon = Icons.AutoMirrored.Sharp.PlaylistPlay,
             text = stringResource(R.string.enqueue),
@@ -109,6 +110,7 @@ fun AlbumBottomSheet(
                 onDismissRequest()
             },
         )
+
         BottomSheetItem(
             text = stringResource(R.string.start_radio),
             icon = Icons.Sharp.Radio,
@@ -117,6 +119,7 @@ fun AlbumBottomSheet(
                 onDismissRequest()
             },
         )
+
         if (!uiState.isInLibrary) BottomSheetItem(
             text = stringResource(R.string.add_to_library),
             icon = Icons.Sharp.BookmarkBorder,
@@ -125,6 +128,7 @@ fun AlbumBottomSheet(
                 onDismissRequest()
             },
         )
+
         if (uiState.isDownloadable) BottomSheetItem(
             text = stringResource(R.string.download),
             icon = Icons.Sharp.Download,
@@ -133,6 +137,7 @@ fun AlbumBottomSheet(
                 onDismissRequest()
             },
         )
+
         if (uiState.isInLibrary) BottomSheetItem(
             text = stringResource(R.string.edit),
             icon = Icons.Sharp.Edit,
@@ -141,11 +146,21 @@ fun AlbumBottomSheet(
                 onDismissRequest()
             },
         )
+
         BottomSheetItem(
             text = stringResource(R.string.add_to_playlist),
             icon = Icons.AutoMirrored.Sharp.PlaylistAdd,
             onClick = {
                 callbacks.onAddToPlaylistClick(uiState.albumId)
+                onDismissRequest()
+            },
+        )
+
+        if (uiState.musicBrainzReleaseGroupId != null) BottomSheetItem(
+            icon = Icons.Sharp.Album,
+            text = stringResource(R.string.select_another_release),
+            onClick = {
+                callbacks.onSelectReleaseClick(uiState.albumId)
                 onDismissRequest()
             },
         )

@@ -9,14 +9,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import us.huseli.retaintheme.extensions.launchOnIOThread
 import us.huseli.fistopy.dataclasses.album.Album
+import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
+import us.huseli.fistopy.dataclasses.album.withUpdates
+import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzRelease
 import us.huseli.fistopy.dataclasses.playlist.Playlist
 import us.huseli.fistopy.dataclasses.track.TrackCombo
 import us.huseli.fistopy.dataclasses.track.TrackUiState
 import us.huseli.fistopy.managers.ExternalContentManager
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnIOThread
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,6 +33,7 @@ class RootStateViewModel @Inject constructor(
     private val _exportAlbumIds = MutableStateFlow<ImmutableList<String>>(persistentListOf())
     private val _exportPlaylistId = MutableStateFlow<String?>(null)
     private val _exportTrackIds = MutableStateFlow<ImmutableList<String>>(persistentListOf())
+    private val _selectMusicBrainzReleaseAlbumId = MutableStateFlow<String?>(null)
     private val _showInfoTrackId = MutableStateFlow<String?>(null)
 
     val addToPlaylistTrackIds = _addToPlaylistTrackIds.asStateFlow()
@@ -43,6 +47,14 @@ class RootStateViewModel @Inject constructor(
     val exportTrackIds = _exportTrackIds.asStateFlow()
     val showCreatePlaylistDialog = MutableStateFlow(false)
     val showLibraryRadioDialog = MutableStateFlow(false)
+
+    val selectMusicBrainzReleases = _selectMusicBrainzReleaseAlbumId.map { albumId ->
+        albumId?.let {
+            repos.album.getAlbum(albumId)?.musicBrainzReleaseGroupId?.let {
+                repos.musicBrainz.listReleasesByReleaseGroupId(it).toImmutableList()
+            }
+        }
+    }.stateWhileSubscribed()
 
     val showInfoTrackCombo: StateFlow<TrackCombo?> = _showInfoTrackId.map { trackId ->
         trackId?.let {
@@ -68,6 +80,27 @@ class RootStateViewModel @Inject constructor(
         _exportTrackIds.value = persistentListOf()
         _exportAlbumIds.value = persistentListOf()
         _exportPlaylistId.value = null
+    }
+
+    fun selectMusicBrainzRelease(release: MusicBrainzRelease) = launchOnIOThread {
+        _selectMusicBrainzReleaseAlbumId.value?.let { repos.album.getAlbumWithTracks(it) }?.also { oldCombo ->
+            val newCombo = release.toAlbumCombo(
+                isLocal = oldCombo.album.isLocal,
+                isInLibrary = oldCombo.album.isInLibrary,
+            )
+            val updatedCombo = oldCombo.withUpdates {
+                mergeAlbum(newCombo.album)
+                mergeArtists(newCombo.artists)
+                mergeTags(newCombo.tags)
+                mergeTrackCombos(
+                    other = newCombo.trackCombos,
+                    mergeStrategy = TrackMergeStrategy.KEEP_OTHER,
+                )
+            }
+
+            _selectMusicBrainzReleaseAlbumId.value = null
+            managers.library.upsertAlbumWithTracks(updatedCombo)
+        }
     }
 
     fun setAlbumToDownloadId(albumId: String?) {
@@ -111,6 +144,10 @@ class RootStateViewModel @Inject constructor(
     }
 
     fun setLocalMusicUri(value: Uri) = repos.settings.setLocalMusicUri(value)
+
+    fun setSelectMusicBrainzReleaseAlbumId(albumId: String?) {
+        _selectMusicBrainzReleaseAlbumId.value = albumId
+    }
 
     fun setShowInfoTrackId(trackId: String?) {
         _showInfoTrackId.value = trackId

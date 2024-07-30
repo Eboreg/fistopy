@@ -56,6 +56,5 @@ class YoutubeBackend(repos: Repositories) : IExternalSearchBackend<YoutubePlayli
                 channel.close()
             }
         }
-
     }
 }

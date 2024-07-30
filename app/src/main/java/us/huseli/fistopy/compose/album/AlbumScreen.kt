@@ -11,16 +11,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Album
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,7 +44,6 @@ import us.huseli.fistopy.dataclasses.album.AlbumUiState
 import us.huseli.fistopy.dataclasses.album.LocalAlbumCallbacks
 import us.huseli.fistopy.dataclasses.callbacks.LocalAppCallbacks
 import us.huseli.fistopy.dataclasses.callbacks.LocalAppDialogCallbacks
-import us.huseli.fistopy.dataclasses.musicbrainz.joined
 import us.huseli.fistopy.getClickableArtist
 import us.huseli.fistopy.getClickableArtists
 import us.huseli.fistopy.pluralStringResource
@@ -79,7 +75,6 @@ fun AlbumScreen(state: AlbumUiState, viewModel: AlbumViewModel) {
     val trackUiStates by viewModel.trackUiStates.collectAsStateWithLifecycle()
     val otherArtistAlbums by viewModel.otherArtistAlbums.collectAsStateWithLifecycle()
     val albumDownloadState by viewModel.downloadState.collectAsStateWithLifecycle()
-    val musicBrainzReleases by viewModel.musicBrainzReleases.collectAsStateWithLifecycle()
 
     Column {
         BasicHeader(title = state.title.umlautify()) {
@@ -119,7 +114,7 @@ fun AlbumScreen(state: AlbumUiState, viewModel: AlbumViewModel) {
                         if (artists.isNotBlank()) {
                             Text(
                                 text = artists,
-                                style = if (artists.length > 35) FistopyTheme.typography.titleMedium else FistopyTheme.typography.titleLarge,
+                                style = if (artists.length > 25) FistopyTheme.typography.titleMedium else FistopyTheme.typography.titleLarge,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -190,22 +185,6 @@ fun AlbumScreen(state: AlbumUiState, viewModel: AlbumViewModel) {
             }
 
             item { ProgressSection(progress = importProgress) }
-
-            items(musicBrainzReleases) { release ->
-                val about = listOfNotNull(
-                    release.date,
-                    release.getCountryName(context),
-                    "${release.trackCount} tracks",
-                    release.labelInfo?.joinToString("/") { it.label.name },
-                ).joinToString(" / ")
-
-                CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodySmall) {
-                    Column {
-                        Text(text = "${release.artistCredit.joined()} - ${release.title}")
-                        Text(text = about)
-                    }
-                }
-            }
 
             // Track list:
             itemsIndexed(trackUiStates, key = { _, state -> state.id }) { index, trackState ->

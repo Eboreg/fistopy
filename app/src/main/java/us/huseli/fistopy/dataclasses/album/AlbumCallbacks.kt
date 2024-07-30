@@ -17,6 +17,7 @@ data class AlbumCallbacks(
     val onEditClick: (String) -> Unit = {},
     val onEnqueueClick: (String) -> Unit = {},
     val onPlayClick: (String) -> Unit = {},
+    val onSelectReleaseClick: (String) -> Unit = {},
     val onStartRadioClick: (String) -> Unit = {},
 ) {
     fun withPreHook(scope: CoroutineScope, hook: suspend (String) -> String): AlbumCallbacks = copy(
@@ -30,6 +31,7 @@ data class AlbumCallbacks(
         onEditClick = { scope.launch { withContext(Dispatchers.Main) { onEditClick(hook(it)) } } },
         onEnqueueClick = { scope.launch { withContext(Dispatchers.Main) { onEnqueueClick(hook(it)) } } },
         onPlayClick = { scope.launch { withContext(Dispatchers.Main) { onPlayClick(hook(it)) } } },
+        onSelectReleaseClick = { scope.launch { withContext(Dispatchers.Main) { onSelectReleaseClick(hook(it)) } } },
         onStartRadioClick = { scope.launch { withContext(Dispatchers.Main) { onStartRadioClick(hook(it)) } } },
     )
 }

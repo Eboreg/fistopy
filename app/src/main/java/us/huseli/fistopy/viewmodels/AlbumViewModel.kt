@@ -14,15 +14,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.transformWhile
-import us.huseli.retaintheme.extensions.filterValuesNotNull
-import us.huseli.retaintheme.extensions.launchOnIOThread
-import us.huseli.retaintheme.extensions.launchOnMainThread
 import us.huseli.fistopy.AlbumDownloadTask
 import us.huseli.fistopy.Constants.NAV_ARG_ALBUM
 import us.huseli.fistopy.dataclasses.ProgressData
 import us.huseli.fistopy.dataclasses.album.AlbumUiState
 import us.huseli.fistopy.dataclasses.album.AlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
+import us.huseli.fistopy.dataclasses.album.withUpdates
 import us.huseli.fistopy.dataclasses.artist.Artist
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseGroupBrowse
 import us.huseli.fistopy.dataclasses.track.AbstractTrackUiState
@@ -33,6 +31,9 @@ import us.huseli.fistopy.enums.ListUpdateStrategy
 import us.huseli.fistopy.interfaces.IExternalAlbum
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.filterValuesNotNull
+import us.huseli.retaintheme.extensions.launchOnIOThread
+import us.huseli.retaintheme.extensions.launchOnMainThread
 import javax.inject.Inject
 
 @HiltViewModel
@@ -112,7 +113,7 @@ class AlbumViewModel @Inject constructor(
                 .toImmutableList()
             val filteredAlbums = filtered.filter { it.albumType == AlbumType.ALBUM }.toImmutableList()
 
-            OtherArtistAlbums(
+            if (filtered.isNotEmpty()) OtherArtistAlbums(
                 albumTypes = artistAlbumTypes.toImmutableList(),
                 albums = filtered,
                 artist = artist.native,
@@ -120,8 +121,8 @@ class AlbumViewModel @Inject constructor(
                 order = artist.order,
                 preview = if (filteredAlbums.size >= 10) filteredAlbums else filtered,
                 musicBrainzArtistId = artist.musicBrainzId,
-            )
-        }.sortedBy { it.order }.toImmutableList()
+            ) else null
+        }.filterNotNull().sortedBy { it.order }.toImmutableList()
     }.stateWhileSubscribed(persistentListOf())
 
     val albumNotFound = _albumNotFound.asStateFlow()
@@ -169,12 +170,6 @@ class AlbumViewModel @Inject constructor(
 
     val uiState: StateFlow<AlbumUiState?> = _albumCombo.map { it?.toUiState() }.stateWhileSubscribed()
 
-    val musicBrainzReleases = uiState.filterNotNull().map { state ->
-        state.musicBrainzReleaseGroupId?.let { groupId ->
-            repos.musicBrainz.listReleasesByReleaseGroupId(groupId).sortedBy { it.date }.toImmutableList()
-        } ?: persistentListOf()
-    }.stateWhileSubscribed(persistentListOf())
-
     init {
         unselectAllTracks()
         refetchIfNeeded()
@@ -217,42 +212,42 @@ class AlbumViewModel @Inject constructor(
         _otherArtistAlbumsAlbumTypes.value += obj.musicBrainzArtistId to current
     }
 
-    private fun refetchIfNeeded() {
-        launchOnIOThread {
-            _albumCombo.transformWhile {
-                if (it != null) emit(it)
-                it == null
-            }.collect { combo ->
-                if (combo.album.trackCount != null && combo.album.trackCount > combo.tracks.size) {
-                    val newCombo = combo.album.spotifyId?.let { spotifyId ->
-                        repos.spotify
-                            .getAlbum(spotifyId)
-                            ?.toAlbumWithTracks(
-                                isLocal = combo.album.isLocal,
-                                isInLibrary = combo.album.isInLibrary,
-                                albumId = combo.album.albumId,
-                            )
-                    } ?: combo.album.musicBrainzReleaseId?.let { musicBrainzId ->
-                        repos.musicBrainz
-                            .getRelease(musicBrainzId)
-                            ?.toAlbumWithTracks(
-                                isInLibrary = combo.album.isInLibrary,
-                                isLocal = combo.album.isLocal,
-                                albumId = combo.album.albumId,
-                            )
-                    }
-
-                    if (newCombo != null) {
-                        managers.library.upsertAlbumWithTracks(
-                            combo.updateWith(
-                                other = newCombo,
-                                trackMergeStrategy = TrackMergeStrategy.KEEP_MOST,
-                                albumArtistUpdateStrategy = ListUpdateStrategy.MERGE,
-                                trackArtistUpdateStrategy = ListUpdateStrategy.MERGE,
-                                tagUpdateStrategy = ListUpdateStrategy.MERGE,
-                            )
+    private fun refetchIfNeeded() = launchOnIOThread {
+        _albumCombo.transformWhile {
+            if (it != null) emit(it)
+            it == null
+        }.collect { combo ->
+            if (combo.album.trackCount != null && combo.album.trackCount > combo.tracks.size) {
+                val newCombo = combo.album.spotifyId?.let { spotifyId ->
+                    repos.spotify
+                        .getAlbum(spotifyId)
+                        ?.toAlbumWithTracks(
+                            isLocal = combo.album.isLocal,
+                            isInLibrary = combo.album.isInLibrary,
+                            albumId = combo.album.albumId,
                         )
-                    }
+                } ?: combo.album.musicBrainzReleaseId?.let { musicBrainzId ->
+                    repos.musicBrainz
+                        .getRelease(musicBrainzId)
+                        ?.toAlbumWithTracks(
+                            isInLibrary = combo.album.isInLibrary,
+                            isLocal = combo.album.isLocal,
+                            albumId = combo.album.albumId,
+                        )
+                }
+
+                if (newCombo != null) {
+                    managers.library.upsertAlbumWithTracks(
+                        combo.withUpdates {
+                            mergeAlbum(newCombo.album)
+                            mergeTrackCombos(
+                                other = newCombo.trackCombos,
+                                mergeStrategy = TrackMergeStrategy.KEEP_MOST,
+                            )
+                            mergeTags(other = newCombo.tags)
+                            mergeArtists(other = newCombo.artists, updateStrategy = ListUpdateStrategy.MERGE)
+                        }
+                    )
                 }
             }
         }

@@ -42,125 +42,126 @@ interface IAlbumWithTracksCombo<out A : IAlbum> : IAlbumCombo<A> {
     override val isDownloadable: Boolean
         get() = trackCombos.any { it.track.isDownloadable }
 
-    fun updateWith(
-        other: UnsavedAlbumWithTracksCombo,
-        trackMergeStrategy: TrackMergeStrategy,
-        albumArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-        trackArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-        tagUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.MERGE,
-    ): UnsavedAlbumWithTracksCombo {
-        /**
-         * Returns a copy of self, with all basic data changed to that of `other`. Nullable foreign keys and embedded
-         * objects such as spotifyId and youtubePlaylist are taken from `other` if not null there, or otherwise kept.
-         */
-        val mergedAlbum = album.mergeWith(other.album)
-        val mergedTrackCombos = mergeTrackCombos(
-            other = other.trackCombos,
-            album = mergedAlbum,
-            mergeStrategy = trackMergeStrategy,
-            artistUpdateStrategy = trackArtistUpdateStrategy,
+    class Builder(combo: IAlbumWithTracksCombo<IAlbum>) {
+        private var album = combo.album.asUnsavedAlbum()
+        private var artists = combo.artists
+        private var tags = combo.tags
+        private var trackCombos = combo.trackCombos
+
+        fun build(): UnsavedAlbumWithTracksCombo = UnsavedAlbumWithTracksCombo(
+            album = album.asUnsavedAlbum(),
+            artists = artists,
+            tags = tags,
+            trackCombos = trackCombos,
         )
 
-        return UnsavedAlbumWithTracksCombo(
-            album = mergedAlbum.asUnsavedAlbum(),
-            tags = mergeTags(other = other.tags, updateStrategy = tagUpdateStrategy),
-            trackCombos = mergedTrackCombos,
-            artists = mergeAlbumArtists(other = other.artists, updateStrategy = albumArtistUpdateStrategy),
-        )
-    }
-
-    fun updateWith(album: IAlbum? = null, tracks: List<Track>? = null): IAlbumWithTracksCombo<A>
-
-    private fun mergeAlbumArtists(
-        other: List<IAlbumArtistCredit>,
-        updateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-    ): List<IAlbumArtistCredit> {
-        val albumArtists = other.map { it.withAlbumId(albumId = album.albumId) }.toMutableSet()
-        if (updateStrategy == ListUpdateStrategy.MERGE) albumArtists.addAll(artists)
-
-        return albumArtists.toList()
-    }
-
-    private fun mergeTags(other: List<Tag>, updateStrategy: ListUpdateStrategy = ListUpdateStrategy.MERGE): List<Tag> {
-        return when (updateStrategy) {
-            ListUpdateStrategy.MERGE -> tags.toSet().plus(other).toList()
-            ListUpdateStrategy.REPLACE -> other
+        fun mergeAlbum(other: IAlbum): Builder {
+            album = album.copy(
+                albumArt = other.albumArt ?: album.albumArt,
+                albumType = other.albumType ?: album.albumType,
+                musicBrainzReleaseGroupId = other.musicBrainzReleaseGroupId ?: album.musicBrainzReleaseGroupId,
+                musicBrainzReleaseId = other.musicBrainzReleaseId ?: album.musicBrainzReleaseId,
+                spotifyId = other.spotifyId ?: album.spotifyId,
+                spotifyImage = other.spotifyImage ?: album.spotifyImage,
+                youtubePlaylist = other.youtubePlaylist ?: album.youtubePlaylist,
+            )
+            return this
         }
-    }
 
-    private fun mergeTrackCombos(
-        other: List<ITrackCombo>,
-        album: IAlbum,
-        mergeStrategy: TrackMergeStrategy,
-        artistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-    ): List<ITrackCombo> {
-        val mergedTrackCombos = mutableListOf<ITrackCombo>()
+        fun mergeArtists(
+            other: List<IAlbumArtistCredit>,
+            updateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
+        ): Builder {
+            val albumArtists = other.map { it.withAlbumId(albumId = album.albumId) }.toMutableSet()
 
-        for (i in 0 until max(trackCombos.size, other.size)) {
-            val thisTrackCombo = trackCombos.find { it.track.albumPosition == i + 1 }
-            val otherTrackCombo = other.find { it.track.albumPosition == i + 1 }
+            if (updateStrategy == ListUpdateStrategy.MERGE) albumArtists.addAll(artists)
+            artists = albumArtists.toList()
+            return this
+        }
 
-            if (thisTrackCombo != null && otherTrackCombo != null) {
-                val trackArtists = otherTrackCombo.trackArtists
-                    .map { it.withTrackId(trackId = thisTrackCombo.track.trackId) }
-                    .toMutableSet()
-                if (artistUpdateStrategy == ListUpdateStrategy.MERGE) trackArtists.addAll(thisTrackCombo.trackArtists)
+        fun mergeTags(other: List<Tag>, updateStrategy: ListUpdateStrategy = ListUpdateStrategy.MERGE): Builder {
+            tags = when (updateStrategy) {
+                ListUpdateStrategy.MERGE -> tags.toSet().plus(other).toList()
+                ListUpdateStrategy.REPLACE -> other
+            }
+            return this
+        }
 
-                mergedTrackCombos.add(
-                    UnsavedTrackCombo(
-                        track = otherTrackCombo.track.copy(
-                            musicBrainzId = otherTrackCombo.track.musicBrainzId ?: thisTrackCombo.track.musicBrainzId,
-                            trackId = thisTrackCombo.track.trackId,
-                            albumId = thisTrackCombo.track.albumId,
-                            localUri = otherTrackCombo.track.localUri ?: thisTrackCombo.track.localUri,
-                            spotifyId = otherTrackCombo.track.spotifyId ?: thisTrackCombo.track.spotifyId,
-                            youtubeVideo = otherTrackCombo.track.youtubeVideo ?: thisTrackCombo.track.youtubeVideo,
-                            metadata = otherTrackCombo.track.metadata ?: thisTrackCombo.track.metadata,
-                            image = otherTrackCombo.track.image ?: thisTrackCombo.track.image,
-                            durationMs = otherTrackCombo.track.durationMs ?: thisTrackCombo.track.durationMs,
-                        ),
-                        album = album,
-                        trackArtists = trackArtists.toList(),
-                        albumArtists = otherTrackCombo.albumArtists,
+        fun mergeTrackCombos(
+            other: List<ITrackCombo>,
+            mergeStrategy: TrackMergeStrategy,
+            artistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
+        ): Builder {
+            val mergedTrackCombos = mutableListOf<ITrackCombo>()
+
+            for (i in 0 until max(trackCombos.size, other.size)) {
+                val thisTrackCombo = trackCombos.find { it.track.albumPosition == i + 1 }
+                val otherTrackCombo = other.find { it.track.albumPosition == i + 1 }
+
+                if (thisTrackCombo != null && otherTrackCombo != null) {
+                    val trackArtists = otherTrackCombo.trackArtists
+                        .map { it.withTrackId(trackId = thisTrackCombo.track.trackId) }
+                        .toMutableSet()
+                    if (artistUpdateStrategy == ListUpdateStrategy.MERGE) trackArtists.addAll(thisTrackCombo.trackArtists)
+
+                    mergedTrackCombos.add(
+                        UnsavedTrackCombo(
+                            track = otherTrackCombo.track.copy(
+                                musicBrainzId = otherTrackCombo.track.musicBrainzId
+                                    ?: thisTrackCombo.track.musicBrainzId,
+                                trackId = thisTrackCombo.track.trackId,
+                                albumId = thisTrackCombo.track.albumId,
+                                localUri = otherTrackCombo.track.localUri ?: thisTrackCombo.track.localUri,
+                                spotifyId = otherTrackCombo.track.spotifyId ?: thisTrackCombo.track.spotifyId,
+                                youtubeVideo = otherTrackCombo.track.youtubeVideo ?: thisTrackCombo.track.youtubeVideo,
+                                metadata = otherTrackCombo.track.metadata ?: thisTrackCombo.track.metadata,
+                                image = otherTrackCombo.track.image ?: thisTrackCombo.track.image,
+                                durationMs = otherTrackCombo.track.durationMs ?: thisTrackCombo.track.durationMs,
+                            ),
+                            album = album,
+                            trackArtists = trackArtists.toList(),
+                            albumArtists = otherTrackCombo.albumArtists,
+                        )
                     )
-                )
-            } else if (
-                thisTrackCombo != null &&
-                (mergeStrategy == TrackMergeStrategy.KEEP_SELF || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
-            ) mergedTrackCombos.add(thisTrackCombo)
-            else if (
-                otherTrackCombo != null &&
-                (mergeStrategy == TrackMergeStrategy.KEEP_OTHER || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
-            ) mergedTrackCombos.add(
-                UnsavedTrackCombo(
-                    track = otherTrackCombo.track,
-                    album = album,
-                    trackArtists = otherTrackCombo.trackArtists,
-                    albumArtists = otherTrackCombo.albumArtists,
-                )
-            )
+                } else if (
+                    thisTrackCombo != null &&
+                    (mergeStrategy == TrackMergeStrategy.KEEP_SELF || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
+                ) {
+                    mergedTrackCombos.add(thisTrackCombo)
+                } else if (
+                    otherTrackCombo != null &&
+                    (mergeStrategy == TrackMergeStrategy.KEEP_OTHER || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
+                ) {
+                    mergedTrackCombos.add(
+                        UnsavedTrackCombo(
+                            track = otherTrackCombo.track.copy(albumId = album.albumId),
+                            album = album,
+                            trackArtists = otherTrackCombo.trackArtists,
+                            albumArtists = otherTrackCombo.albumArtists,
+                        )
+                    )
+                }
+            }
+
+            trackCombos = mergedTrackCombos.toList()
+            album = album.copy(trackCount = mergedTrackCombos.size)
+            return this
         }
 
-        return mergedTrackCombos.toList()
-    }
-
-    class Builder(private var combo: IAlbumWithTracksCombo<IAlbum>) {
-        fun build(): IAlbumWithTracksCombo<IAlbum> = combo
-
-        fun setAlbumArt(value: MediaStoreImage?) {
-            combo = combo.updateWith(album = combo.album.withAlbumArt(value))
+        fun setAlbumArt(value: MediaStoreImage?): Builder {
+            album = album.copy(albumArt = value)
+            return this
         }
 
-        fun setIsInLibrary(value: Boolean) {
-            combo = combo.updateWith(
-                album = combo.album.withIsinLibrary(value),
-                tracks = combo.tracks.map { it.copy(isInLibrary = value) },
-            )
+        fun setIsInLibrary(value: Boolean): Builder {
+            album = album.copy(isInLibrary = value)
+            trackCombos = trackCombos.map { it.withTrack(it.track.copy(isInLibrary = value)) }
+            return this
         }
     }
 }
 
 
-inline fun IAlbumWithTracksCombo<IAlbum>.withUpdates(builder: IAlbumWithTracksCombo.Builder.() -> Unit): IAlbumWithTracksCombo<IAlbum> {
+inline fun IAlbumWithTracksCombo<IAlbum>.withUpdates(builder: IAlbumWithTracksCombo.Builder.() -> Unit): UnsavedAlbumWithTracksCombo {
     return IAlbumWithTracksCombo.Builder(this).apply(builder).build()
 }

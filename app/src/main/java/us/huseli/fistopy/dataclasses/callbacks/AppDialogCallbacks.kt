@@ -18,6 +18,7 @@ data class AppDialogCallbacks(
     val onExportPlaylistClick: (String) -> Unit = {},
     val onExportTracksClick: (Collection<String>) -> Unit = {},
     val onRadioClick: () -> Unit = {},
+    val onSelectMusicBrainzReleaseClick: (String) -> Unit = {},
     val onShowTrackInfoClick: (String) -> Unit = {},
 )
 

@@ -12,6 +12,7 @@ import kotlinx.collections.immutable.toImmutableList
 import us.huseli.fistopy.R
 import us.huseli.fistopy.compose.album.DeleteAlbumsDialog
 import us.huseli.fistopy.compose.album.EditAlbumMethodDialog
+import us.huseli.fistopy.compose.album.SelectMusicBrainzReleaseDialog
 import us.huseli.fistopy.compose.export.ExportTracksDialog
 import us.huseli.fistopy.compose.imports.PostImportDialog
 import us.huseli.fistopy.compose.playlist.AddTracksToPlaylistDialog
@@ -40,9 +41,18 @@ inline fun rememberDialogCallbacks(
     val exportPlaylistId by viewModel.exportPlaylistId.collectAsStateWithLifecycle()
     val exportTrackIds by viewModel.exportTrackIds.collectAsStateWithLifecycle()
     val localMusicUri by viewModel.localMusicUri.collectAsStateWithLifecycle()
+    val selectMusicBrainzReleases by viewModel.selectMusicBrainzReleases.collectAsStateWithLifecycle()
     val showCreatePlaylistDialog by viewModel.showCreatePlaylistDialog.collectAsStateWithLifecycle()
     val showInfoTrackCombo by viewModel.showInfoTrackCombo.collectAsStateWithLifecycle()
     val showLibraryRadioDialog by viewModel.showLibraryRadioDialog.collectAsStateWithLifecycle()
+
+    selectMusicBrainzReleases?.also {
+        SelectMusicBrainzReleaseDialog(
+            releases = it,
+            onSelect = { release -> viewModel.selectMusicBrainzRelease(release) },
+            onDismissRequest = { viewModel.setSelectMusicBrainzReleaseAlbumId(null) },
+        )
+    }
 
     albumImportData?.also { data ->
         PostImportDialog(
@@ -121,6 +131,7 @@ inline fun rememberDialogCallbacks(
             onExportPlaylistClick = { viewModel.setExportPlaylistId(it) },
             onExportTracksClick = { viewModel.setExportTrackIds(it) },
             onRadioClick = { viewModel.showLibraryRadioDialog.value = true },
+            onSelectMusicBrainzReleaseClick = { viewModel.setSelectMusicBrainzReleaseAlbumId(it) },
             onShowTrackInfoClick = { viewModel.setShowInfoTrackId(it) },
         )
     }

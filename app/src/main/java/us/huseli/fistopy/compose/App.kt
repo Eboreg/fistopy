@@ -199,6 +199,7 @@ fun App(
             onEnqueueClick = { viewModel.enqueueAlbum(it) },
             onGotoAlbumClick = onGotoAlbumClick,
             onPlayClick = { viewModel.playAlbum(it) },
+            onSelectReleaseClick = dialogCallbacks.onSelectMusicBrainzReleaseClick,
             onStartRadioClick = { viewModel.startAlbumRadio(it) },
         )
     }

@@ -8,11 +8,14 @@ import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
 import us.huseli.fistopy.interfaces.IStringIdItem
 
 interface IAlbumUiState : IStringIdItem, IAlbumArtOwner, IHasMusicBrainzIds {
-    val albumId: String
-    val artists: ImmutableList<IAlbumArtistCredit>
-    val artistString: String?
-    val albumType: AlbumType?
     override val fullImageUrl: String?
+    override val musicBrainzReleaseGroupId: String?
+    override val musicBrainzReleaseId: String?
+    override val thumbnailUrl: String?
+    val albumId: String
+    val albumType: AlbumType?
+    val artistString: String?
+    val artists: ImmutableList<IAlbumArtistCredit>
     val isDownloadable: Boolean
     val isInLibrary: Boolean
     val isLocal: Boolean
@@ -20,10 +23,7 @@ interface IAlbumUiState : IStringIdItem, IAlbumArtOwner, IHasMusicBrainzIds {
     val isPlayable: Boolean
     val isSaved: Boolean
     val isSelected: Boolean
-    override val musicBrainzReleaseGroupId: String?
-    override val musicBrainzReleaseId: String?
     val spotifyWebUrl: String?
-    override val thumbnailUrl: String?
     val title: String
     val trackCount: Int?
     val yearString: String?
