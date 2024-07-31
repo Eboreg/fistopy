@@ -12,9 +12,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import us.huseli.fistopy.dataclasses.ModalCoverBooleans
-import us.huseli.fistopy.dataclasses.track.AbstractTrackUiState
 import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiState
-import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiStateLight
 import us.huseli.fistopy.getAverageColor
 import us.huseli.fistopy.repositories.Repositories
 import us.huseli.fistopy.waveList
@@ -59,50 +57,16 @@ class ModalCoverViewModel @Inject constructor(private val repos: Repositories) :
                 ?: 0f
         }.distinctUntilChanged().stateWhileSubscribed(0f)
 
-    val nextTrackUiState: StateFlow<ModalCoverTrackUiStateLight?> = repos.player.nextCombo.map { combo ->
-        combo?.let {
-            ModalCoverTrackUiStateLight(
-                albumArtUri = it.fullImageUrl,
-                artistString = it.artistString,
-                title = it.track.title,
-            )
-        }
+    val nextTrackUiState: StateFlow<ModalCoverTrackUiState?> = repos.player.nextCombo.map { combo ->
+        combo?.let { ModalCoverTrackUiState.fromTrackCombo(it) }
     }.distinctUntilChanged().stateWhileSubscribed()
 
-    val previousTrackUiState: StateFlow<ModalCoverTrackUiStateLight?> = repos.player.previousCombo.map { combo ->
-        combo?.let {
-            ModalCoverTrackUiStateLight(
-                albumArtUri = it.fullImageUrl,
-                artistString = it.artistString,
-                title = it.track.title,
-            )
-        }
+    val previousTrackUiState: StateFlow<ModalCoverTrackUiState?> = repos.player.previousCombo.map { combo ->
+        combo?.let { ModalCoverTrackUiState.fromTrackCombo(it) }
     }.distinctUntilChanged().stateWhileSubscribed()
 
     val trackUiState: StateFlow<ModalCoverTrackUiState?> = repos.player.currentCombo.map { combo ->
-        if (combo != null) {
-            ModalCoverTrackUiState(
-                albumId = combo.track.albumId,
-                albumTitle = combo.album?.title,
-                artists = combo.artists
-                    .map { AbstractTrackUiState.Artist.fromArtistCredit(it) }
-                    .toImmutableList(),
-                artistString = combo.artistString,
-                durationMs = combo.track.durationMs?.takeIf { it >= 0 } ?: 0,
-                fullImageUrl = combo.fullImageUrl,
-                id = combo.track.trackId,
-                isDownloadable = combo.track.isDownloadable,
-                isInLibrary = combo.track.isInLibrary,
-                isPlayable = combo.track.isPlayable,
-                musicBrainzReleaseGroupId = combo.album?.musicBrainzReleaseGroupId,
-                musicBrainzReleaseId = combo.album?.musicBrainzReleaseId,
-                spotifyId = combo.track.spotifyId,
-                spotifyWebUrl = combo.track.spotifyWebUrl,
-                thumbnailUrl = combo.fullImageUrl, // we want the same file regardless of expand/collapse status
-                title = combo.track.title,
-                youtubeWebUrl = combo.track.youtubeWebUrl,
-            )
-        } else null
+        combo?.let { ModalCoverTrackUiState.fromTrackCombo(it) }
     }.distinctUntilChanged().stateWhileSubscribed()
 
     fun playOrPauseCurrent() = repos.player.playOrPauseCurrent()

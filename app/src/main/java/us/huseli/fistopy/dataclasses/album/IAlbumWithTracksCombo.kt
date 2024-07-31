@@ -153,6 +153,11 @@ interface IAlbumWithTracksCombo<out A : IAlbum> : IAlbumCombo<A> {
             return this
         }
 
+        fun setAlbumTitle(value: String): Builder {
+            album = album.copy(title = value)
+            return this
+        }
+
         fun setIsInLibrary(value: Boolean): Builder {
             album = album.copy(isInLibrary = value)
             trackCombos = trackCombos.map { it.withTrack(it.track.copy(isInLibrary = value)) }

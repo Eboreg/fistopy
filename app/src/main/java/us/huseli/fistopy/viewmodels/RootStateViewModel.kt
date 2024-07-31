@@ -10,8 +10,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import us.huseli.fistopy.dataclasses.album.Album
-import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
-import us.huseli.fistopy.dataclasses.album.withUpdates
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzRelease
 import us.huseli.fistopy.dataclasses.playlist.Playlist
 import us.huseli.fistopy.dataclasses.track.TrackCombo
@@ -84,22 +82,8 @@ class RootStateViewModel @Inject constructor(
 
     fun selectMusicBrainzRelease(release: MusicBrainzRelease) = launchOnIOThread {
         _selectMusicBrainzReleaseAlbumId.value?.let { repos.album.getAlbumWithTracks(it) }?.also { oldCombo ->
-            val newCombo = release.toAlbumCombo(
-                isLocal = oldCombo.album.isLocal,
-                isInLibrary = oldCombo.album.isInLibrary,
-            )
-            val updatedCombo = oldCombo.withUpdates {
-                mergeAlbum(newCombo.album)
-                mergeArtists(newCombo.artists)
-                mergeTags(newCombo.tags)
-                mergeTrackCombos(
-                    other = newCombo.trackCombos,
-                    mergeStrategy = TrackMergeStrategy.KEEP_OTHER,
-                )
-            }
-
             _selectMusicBrainzReleaseAlbumId.value = null
-            managers.library.upsertAlbumWithTracks(updatedCombo)
+            managers.library.upsertAlbumWithTracks(repos.musicBrainz.updateAlbumComboFromRelease(oldCombo, release))
         }
     }
 

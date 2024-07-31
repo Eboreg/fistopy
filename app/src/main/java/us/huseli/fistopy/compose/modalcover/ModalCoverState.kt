@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.fistopy.interfaces.ILogger
+import us.huseli.retaintheme.isInLandscapeMode
 import kotlin.math.max
 
 enum class ModalCoverAnchor { Expanded, Collapsed }
@@ -158,8 +158,8 @@ class ModalCoverState(
     }
     val albumArtModelSize: Int by derivedStateOf {
         with(density) {
-            if (isLandscape) (heightDp - 60.dp - 158.dp).roundToPx()
-            else (widthDp - 50.dp).roundToPx()
+            if (isLandscape) (heightDp - 60.dp - 158.dp).roundToPx().coerceAtLeast(1)
+            else (widthDp - 50.dp).roundToPx().coerceAtLeast(1)
         }
     }
     val albumArtSize: Dp by derivedStateOf {

@@ -123,7 +123,7 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
     suspend fun listReleasesByReleaseGroupId(releaseGroupId: String): List<MusicBrainzRelease> {
         val params = mapOf(
             "release-group" to releaseGroupId,
-            "inc" to "recordings artist-credits genres labels",
+            "inc" to "recordings artist-credits genres labels release-groups",
             "status" to "official",
         )
 
@@ -266,6 +266,27 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
                         previousIds.add(artist.artistId)
                     }
                 }
+        }
+    }
+
+    fun updateAlbumComboFromRelease(
+        oldCombo: IAlbumWithTracksCombo<IAlbum>,
+        release: MusicBrainzRelease,
+    ): UnsavedAlbumWithTracksCombo {
+        val newCombo = release.toAlbumCombo(
+            isLocal = oldCombo.album.isLocal,
+            isInLibrary = oldCombo.album.isInLibrary,
+        )
+        return oldCombo.withUpdates {
+            mergeAlbum(newCombo.album)
+            mergeArtists(newCombo.artists)
+            mergeTags(newCombo.tags)
+            mergeTrackCombos(
+                other = newCombo.trackCombos,
+                mergeStrategy = TrackMergeStrategy.KEEP_OTHER,
+            )
+            setAlbumArt(newCombo.album.albumArt)
+            setAlbumTitle(newCombo.album.title)
         }
     }
 

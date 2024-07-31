@@ -26,7 +26,6 @@ import us.huseli.fistopy.Logger
 import us.huseli.fistopy.dataclasses.ModalCoverBooleans
 import us.huseli.fistopy.dataclasses.callbacks.PlaybackCallbacks
 import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiState
-import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiStateLight
 import kotlin.math.roundToInt
 
 enum class HorizontalDragValue { Previous, Current, Next }
@@ -37,8 +36,8 @@ enum class HorizontalDragValue { Previous, Current, Next }
 fun AlbumArtAndTitlesSwipeable(
     state: ModalCoverState,
     trackUiState: ModalCoverTrackUiState,
-    nextTrackUiState: ModalCoverTrackUiStateLight?,
-    previousTrackUiState: ModalCoverTrackUiStateLight?,
+    nextTrackUiState: ModalCoverTrackUiState?,
+    previousTrackUiState: ModalCoverTrackUiState?,
     playbackCallbacks: PlaybackCallbacks,
     booleans: ModalCoverBooleans,
     modifier: Modifier = Modifier,
@@ -151,7 +150,7 @@ fun AlbumArtAndTitlesSwipeable(
         previousTrackUiStateMutable?.also { uiState ->
             AlbumArtAndTitlesColumn(
                 state = state,
-                albumArtModel = uiState.albumArtUri,
+                albumArtModel = uiState,
                 title = uiState.title,
                 artist = uiState.artistString,
                 offsetX = 0,
@@ -162,7 +161,7 @@ fun AlbumArtAndTitlesSwipeable(
 
         AlbumArtAndTitlesColumn(
             state = state,
-            albumArtModel = trackUiState.fullImageUrl,
+            albumArtModel = trackUiState,
             title = trackUiState.title,
             artist = trackUiState.artistString,
             offsetX = screenWidthPx.toInt(),
@@ -174,7 +173,7 @@ fun AlbumArtAndTitlesSwipeable(
         nextTrackUiStateMutable?.also { uiState ->
             AlbumArtAndTitlesColumn(
                 state = state,
-                albumArtModel = uiState.albumArtUri,
+                albumArtModel = uiState,
                 title = uiState.title,
                 artist = uiState.artistString,
                 offsetX = screenWidthPx.toInt() * 2,

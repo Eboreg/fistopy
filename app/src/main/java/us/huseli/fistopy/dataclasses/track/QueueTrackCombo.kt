@@ -1,6 +1,7 @@
 package us.huseli.fistopy.dataclasses.track
 
 import androidx.compose.runtime.Immutable
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.room.ColumnInfo
@@ -66,22 +67,8 @@ data class QueueTrackCombo(
             .setAlbumTitle(album?.title?.umlautify())
             .setDiscNumber(track.discNumber)
             .setReleaseYear(track.year ?: album?.year)
-            .setArtworkUri(album?.albumArt?.fullUri ?: track.image?.fullUri)
+            .setArtworkUri(fullImageUrl?.toUri() ?: thumbnailUrl?.toUri())
             .build()
-    }
-
-    override fun equals(other: Any?) = other is QueueTrackCombo &&
-        other.track.trackId == track.trackId &&
-        other.queueTrackId == queueTrackId &&
-        other.uri == uri &&
-        other.position == position
-
-    override fun hashCode(): Int {
-        var result = track.trackId.hashCode()
-        result = 31 * result + uri.hashCode()
-        result = 31 * result + queueTrackId.hashCode()
-        result = 31 * result + position
-        return result
     }
 }
 

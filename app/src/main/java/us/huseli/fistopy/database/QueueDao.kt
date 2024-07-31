@@ -9,8 +9,9 @@ import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import us.huseli.fistopy.dataclasses.track.QueueTrack
-import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.track.QueueTrackCombo
+import us.huseli.fistopy.dataclasses.track.Track
+import us.huseli.fistopy.dataclasses.track.TrackCombo
 import us.huseli.fistopy.interfaces.ILogger
 
 @Dao
@@ -26,6 +27,9 @@ abstract class QueueDao : ILogger {
 
     @Query("DELETE FROM QueueTrack WHERE QueueTrack_queueTrackId IN (:queueTrackIds)")
     abstract suspend fun deleteQueueTracks(vararg queueTrackIds: String)
+
+    @Query("SELECT TrackCombo.* FROM QueueTrack JOIN TrackCombo ON Track_trackId = QueueTrack_trackId")
+    abstract fun flowTrackCombosInQueue(): Flow<List<TrackCombo>>
 
     @Query("SELECT Track.* FROM QueueTrack JOIN Track ON Track_trackId = QueueTrack_trackId")
     abstract fun flowTracksInQueue(): Flow<List<Track>>

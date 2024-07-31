@@ -2,6 +2,7 @@ package us.huseli.fistopy.dataclasses.track
 
 import androidx.compose.runtime.Immutable
 import kotlinx.collections.immutable.ImmutableCollection
+import kotlinx.collections.immutable.toImmutableList
 
 @Immutable
 data class ModalCoverTrackUiState(
@@ -27,11 +28,28 @@ data class ModalCoverTrackUiState(
         get() = false
     override val trackId: String
         get() = id
-}
 
-@Immutable
-data class ModalCoverTrackUiStateLight(
-    val albumArtUri: String?,
-    val artistString: String?,
-    val title: String,
-)
+    companion object {
+        fun fromTrackCombo(combo: ITrackCombo) = ModalCoverTrackUiState(
+            albumId = combo.track.albumId,
+            albumTitle = combo.album?.title,
+            artistString = combo.artistString,
+            artists = combo.artists
+                .map { Artist.fromArtistCredit(it) }
+                .toImmutableList(),
+            fullImageUrl = combo.fullImageUrl,
+            id = combo.track.trackId,
+            isDownloadable = combo.track.isDownloadable,
+            isInLibrary = combo.track.isInLibrary,
+            isPlayable = combo.track.isPlayable,
+            musicBrainzReleaseGroupId = combo.album?.musicBrainzReleaseGroupId,
+            musicBrainzReleaseId = combo.album?.musicBrainzReleaseId,
+            spotifyId = combo.track.spotifyId,
+            spotifyWebUrl = combo.track.spotifyWebUrl,
+            thumbnailUrl = combo.fullImageUrl, // we want the same file regardless of expand/collapse status
+            title = combo.track.title,
+            youtubeWebUrl = combo.track.youtubeWebUrl,
+            durationMs = combo.track.durationMs?.takeIf { it >= 0 } ?: 0,
+        )
+    }
+}

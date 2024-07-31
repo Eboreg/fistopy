@@ -26,8 +26,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import us.huseli.retaintheme.extensions.filterValuesNotNull
-import us.huseli.retaintheme.extensions.splitIntervals
 import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.Constants.PREF_CURRENT_TRACK_POSITION
 import us.huseli.fistopy.Constants.PREF_QUEUE_INDEX
@@ -39,6 +37,7 @@ import us.huseli.fistopy.dataclasses.track.reindexed
 import us.huseli.fistopy.enums.PlaybackState
 import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.fistopy.widget.AppWidget
+import us.huseli.retaintheme.extensions.splitIntervals
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.min
@@ -162,19 +161,31 @@ class PlayerRepository @Inject constructor(
 
         launchOnMainThread {
             /**
-             * However, continuously monitor _track_ data from the database, in case URIs change because a track has
-             * been downloaded, locally deleted, got their Youtube URLs updated, etc.
+             * However, continuously monitor _track_ data from the database, in case their non-player related data
+             * changes (e.g. because their title has been updated somewhere else, album art changed, or play URI
+             * changed because the track has been downloaded, locally deleted, got their Youtube URLs updated, etc.)
              */
-            queueDao.flowTracksInQueue().distinctUntilChanged().collect { tracks ->
+            queueDao.flowTrackCombosInQueue().distinctUntilChanged().collect { trackCombos ->
                 queueMutex.withLock {
-                    val uriMap = _queue.value.associateWith { combo ->
-                        tracks.find { it.trackId == combo.track.trackId }?.playUri
-                    }
+                    _queue.value.forEachIndexed { index, queueTrackCombo ->
+                        trackCombos.find { it.track.trackId == queueTrackCombo.track.trackId }?.also { trackCombo ->
+                            val newQueueTrackCombo = queueTrackCombo.copy(
+                                track = trackCombo.track,
+                                album = trackCombo.album,
+                                uri = trackCombo.track.playUri ?: queueTrackCombo.uri,
+                                trackArtists = trackCombo.trackArtists,
+                                albumArtists = trackCombo.albumArtists,
+                            )
 
-                    // Handle updated URIs:
-                    uriMap.filterValuesNotNull().forEach { (combo, uri) ->
-                        if (uri != combo.uri) updateTrack(combo.copy(uri = uri))
+                            if (newQueueTrackCombo != queueTrackCombo) {
+                                updateTrack(newQueueTrackCombo)
+                                _queue.value = _queue.value.toMutableList().apply {
+                                    set(index, newQueueTrackCombo)
+                                }
+                            }
+                        }
                     }
+                    updateNextAndPreviousCombos()
                 }
             }
         }

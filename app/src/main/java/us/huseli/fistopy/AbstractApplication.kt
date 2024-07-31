@@ -9,7 +9,7 @@ abstract class AbstractApplication : android.app.Application(), ImageLoaderFacto
             .components {
                 add(AlbumArtMapper())
                 add(MediaStoreImageMapper())
-                add(CoverArtArchiveInterceptor())
+                add(ThumbnailInterceptor())
             }
             .respectCacheHeaders(false)
             .build()

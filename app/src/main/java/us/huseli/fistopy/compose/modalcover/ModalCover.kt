@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import us.huseli.retaintheme.extensions.distance
 import us.huseli.fistopy.compose.LocalThemeSizes
 import us.huseli.fistopy.compose.track.TrackBottomSheetWithButton
 import us.huseli.fistopy.compose.utils.LargerIconButton
@@ -40,8 +39,8 @@ import us.huseli.fistopy.dataclasses.ModalCoverBooleans
 import us.huseli.fistopy.dataclasses.callbacks.PlaybackCallbacks
 import us.huseli.fistopy.dataclasses.track.LocalTrackCallbacks
 import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiState
-import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiStateLight
 import us.huseli.fistopy.viewmodels.ModalCoverViewModel
+import us.huseli.retaintheme.extensions.distance
 
 @Composable
 fun ModalCover(
@@ -94,8 +93,8 @@ fun ModalCover(
     playbackCallbacks: PlaybackCallbacks,
     currentProgress: FloatState,
     trackAmplitudes: State<List<Int>>,
-    nextTrackUiState: ModalCoverTrackUiStateLight?,
-    previousTrackUiState: ModalCoverTrackUiStateLight?,
+    nextTrackUiState: ModalCoverTrackUiState?,
+    previousTrackUiState: ModalCoverTrackUiState?,
     albumArtAverageColor: State<Color?>,
     modifier: Modifier = Modifier,
 ) {
