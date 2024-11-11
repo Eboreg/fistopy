@@ -24,21 +24,15 @@ import us.huseli.fistopy.SpotifyOAuth2ClientCredentials
 import us.huseli.fistopy.SpotifyOAuth2PKCE
 import us.huseli.fistopy.database.Database
 import us.huseli.fistopy.dataclasses.MediaStoreImage
-import us.huseli.fistopy.dataclasses.album.Album
 import us.huseli.fistopy.dataclasses.album.AlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.IAlbum
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.IAlbumCombo
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.withUpdates
 import us.huseli.fistopy.dataclasses.artist.Artist
-import us.huseli.fistopy.dataclasses.artist.IArtist
-import us.huseli.fistopy.dataclasses.artist.IArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
-import us.huseli.fistopy.dataclasses.artist.names
-import us.huseli.fistopy.dataclasses.spotify.AbstractSpotifyAlbum
 import us.huseli.fistopy.dataclasses.spotify.SpotifyAlbum
-import us.huseli.fistopy.dataclasses.spotify.SpotifyAlbumsResponse
 import us.huseli.fistopy.dataclasses.spotify.SpotifyArtist
 import us.huseli.fistopy.dataclasses.spotify.SpotifyArtistsResponse
 import us.huseli.fistopy.dataclasses.spotify.SpotifyResponse
@@ -52,8 +46,10 @@ import us.huseli.fistopy.dataclasses.spotify.SpotifyTrackRecommendationResponse
 import us.huseli.fistopy.dataclasses.spotify.SpotifyTrackRecommendations
 import us.huseli.fistopy.dataclasses.spotify.SpotifyUserProfile
 import us.huseli.fistopy.dataclasses.spotify.toMediaStoreImage
-import us.huseli.fistopy.dataclasses.track.Track
+import us.huseli.fistopy.dataclasses.track.ExternalTrackCombo
+import us.huseli.fistopy.dataclasses.track.ITrackCombo
 import us.huseli.fistopy.enums.ListUpdateStrategy
+import us.huseli.fistopy.enums.TrackMergeStrategy
 import us.huseli.fistopy.externalcontent.SearchParams
 import us.huseli.fistopy.fromJson
 import us.huseli.fistopy.interfaces.ILogger
@@ -135,31 +131,32 @@ class SpotifyRepository @Inject constructor(
         }
     }
 
-    fun albumSearchChannel(searchParams: SearchParams) = Channel<SpotifySimplifiedAlbum>().also { channel ->
-        launchOnIOThread {
-            val params = mutableMapOf<String, String>()
+    fun albumSearchChannel(searchParams: SearchParams) =
+        Channel<ExternalAlbumWithTracksCombo<SpotifySimplifiedAlbum>>().also { channel ->
+            launchOnIOThread {
+                val params = mutableMapOf<String, String>()
 
-            if (!searchParams.album.isNullOrEmpty()) params["album"] = searchParams.album
-            if (!searchParams.artist.isNullOrEmpty()) params["artist"] = searchParams.artist
+                if (!searchParams.album.isNullOrEmpty()) params["album"] = searchParams.album
+                if (!searchParams.artist.isNullOrEmpty()) params["artist"] = searchParams.artist
 
-            if (params.isNotEmpty() || !searchParams.freeText.isNullOrBlank()) {
-                var url: String? =
-                    getSearchUrl(type = "album", params = params, limit = 50, freeText = searchParams.freeText)
+                if (params.isNotEmpty() || !searchParams.freeText.isNullOrBlank()) {
+                    var url: String? =
+                        getSearchUrl(type = "album", params = params, limit = 50, freeText = searchParams.freeText)
 
-                while (url != null) {
-                    val albumResponse = searchByUrl(url)?.albums
+                    while (url != null) {
+                        val albumResponse = searchByUrl(url)?.albums
 
-                    if (albumResponse != null) {
-                        url = albumResponse.next
-                        for (album in albumResponse.items) {
-                            channel.send(album)
-                        }
-                    } else url = null
+                        if (albumResponse != null) {
+                            url = albumResponse.next
+                            for (album in albumResponse.items) {
+                                channel.send(album.toAlbumWithTracks())
+                            }
+                        } else url = null
+                    }
                 }
+                channel.close()
             }
-            channel.close()
         }
-    }
 
     fun flowTrackAudioFeatures(spotifyTrackId: String): Flow<SpotifyTrackAudioFeatures?> = flow {
         emit(null)
@@ -177,8 +174,7 @@ class SpotifyRepository @Inject constructor(
 
     suspend fun getAlbum(albumId: String): SpotifyAlbum? {
         val job = RequestJob(url = "$API_ROOT/albums/$albumId", oauth2 = oauth2CC)
-
-        return apiResponseCache.getOrNull(job)?.fromJson<SpotifyAlbumsResponse>()?.albums?.firstOrNull()
+        return apiResponseCache.getOrNull(job)?.fromJson<SpotifyAlbum>()
     }
 
     suspend fun getUserProfile(): SpotifyUserProfile? {
@@ -189,14 +185,14 @@ class SpotifyRepository @Inject constructor(
     suspend fun listSpotifyAlbumIds(): List<String> = albumDao.listSpotifyAlbumIds()
 
     suspend fun matchAlbumWithTracks(
-        combo: IAlbumWithTracksCombo<IAlbum>,
+        combo: IAlbumWithTracksCombo<*, *>,
         maxDistance: Double = MAX_ALBUM_MATCH_DISTANCE,
-        trackMergeStrategy: TrackMergeStrategy = TrackMergeStrategy.KEEP_LEAST,
+        trackMergeStrategy: TrackMergeStrategy = TrackMergeStrategy.KEEP_SELF,
         albumArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
         trackArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
         tagUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.MERGE,
     ): UnsavedAlbumWithTracksCombo? {
-        val spotifyAlbum = getBestAlbumMatch(combo.album.title, combo.artists)
+        val spotifyAlbum = matchAlbumCombo(combo)?.let { getAlbum(it.id) }
         val match = spotifyAlbum?.toAlbumWithTracks(
             isLocal = combo.album.isLocal,
             isInLibrary = combo.album.isInLibrary,
@@ -217,34 +213,29 @@ class SpotifyRepository @Inject constructor(
         }
     }
 
-    suspend fun matchTrack(
-        track: Track,
-        album: Album? = null,
-        artists: Collection<IArtist> = emptyList(),
-    ): SpotifyTrack? {
-        val params = mutableMapOf("track" to track.title)
-        val artistNames = artists.map { it.name }
+    suspend fun matchTrack(trackCombo: ITrackCombo<*>): ExternalTrackCombo<SpotifyTrack>? {
+        val params = mutableMapOf("track" to trackCombo.track.title)
+        val artistNames = (trackCombo.albumArtists + trackCombo.trackArtists).map { it.name }.toSet()
 
-        if (artists.isNotEmpty()) params["artist"] = artistNames.toSet().joinToString(", ")
-        album?.also { params["album"] = it.title }
+        if (artistNames.isNotEmpty()) params["artist"] = artistNames.joinToString(", ")
+        trackCombo.album?.also { params["album"] = it.title }
 
         return search(type = "track", params = params)
             ?.tracks
             ?.items
-            ?.map { it.matchTrack(track, album, artistNames) }
+            ?.map { it.toTrackCombo().matchTrack(trackCombo) }
             ?.filter { it.distance <= 10 }
             ?.minByOrNull { it.distance }
-            ?.spotifyTrack
+            ?.trackCombo
     }
 
-    suspend fun searchAlbumArt(album: Album, artistString: String?): List<MediaStoreImage> =
-        album.spotifyImage?.let { image -> listOf(image) }
-            ?: searchAlbums(album.title, artistString)
-                ?.albums
-                ?.items
-                ?.map { it.toAlbumCombo(isLocal = false, isInLibrary = false) }
-                ?.filter { it.getLevenshteinDistance(album.title, artistString) < 10 }
-                ?.mapNotNull { it.album.albumArt }
+    suspend fun searchAlbumArt(albumCombo: IAlbumCombo<*>): List<MediaStoreImage> =
+        searchAlbums(albumCombo.album.title, albumCombo.artists.joined())
+            ?.albums
+            ?.items
+            ?.map { it.toAlbumWithTracks(isLocal = false, isInLibrary = false) }
+            ?.filter { it.getDistance(albumCombo) < 10.0 }
+            ?.mapNotNull { it.album.albumArt }
             ?: emptyList()
 
     fun startMatchingArtists(flow: Flow<List<Artist>>, save: suspend (String, String, MediaStoreImage?) -> Unit) {
@@ -269,7 +260,7 @@ class SpotifyRepository @Inject constructor(
             val allTrackIds = combo.trackCombos
                 .mapNotNull { it.track.spotifyId }
                 .takeIf { it.isNotEmpty() }
-                ?: (combo.album.spotifyId ?: matchAlbumCombo(combo.album.title, combo.artists)?.id)
+                ?: (combo.album.spotifyId ?: matchAlbumCombo(combo)?.id)
                     ?.let { getAlbum(it) }?.tracks?.items?.map { it.id }
             val trackIds = allTrackIds?.shuffled()?.take(5) ?: emptyList()
             val albumArtistIds =
@@ -314,13 +305,9 @@ class SpotifyRepository @Inject constructor(
         }
     }
 
-    fun trackRecommendationsChannelByTrack(
-        track: Track,
-        album: Album? = null,
-        artists: List<IArtist> = emptyList(),
-    ) = Channel<SpotifyTrack>().also { channel ->
+    fun trackRecommendationsChannelByTrack(trackCombo: ITrackCombo<*>) = Channel<SpotifyTrack>().also { channel ->
         launchOnIOThread {
-            val trackId = track.spotifyId ?: matchTrack(track, album, artists)?.id
+            val trackId = trackCombo.track.spotifyId ?: matchTrack(trackCombo)?.externalData?.id
             val recommendations = trackId?.let {
                 getTrackRecommendations(params = mapOf("seed_tracks" to it), limit = 40)
             }
@@ -358,7 +345,7 @@ class SpotifyRepository @Inject constructor(
         }
     }
 
-    fun trackSearchChannel(searchParams: SearchParams) = Channel<SpotifyTrack>().also { channel ->
+    fun trackSearchChannel(searchParams: SearchParams) = Channel<ExternalTrackCombo<SpotifyTrack>>().also { channel ->
         launchOnIOThread {
             val params = mutableMapOf<String, String>()
 
@@ -375,7 +362,7 @@ class SpotifyRepository @Inject constructor(
 
                     if (trackResponse != null) {
                         url = trackResponse.next
-                        for (track in trackResponse.items) channel.send(track)
+                        for (track in trackResponse.items) channel.send(track.toTrackCombo())
                     } else {
                         url = null
                     }
@@ -427,19 +414,6 @@ class SpotifyRepository @Inject constructor(
             ?.also { spotifyDao.insertAudioFeatures(it) }
     }
 
-    private suspend fun getBestAlbumMatch(albumTitle: String, artists: Collection<IArtistCredit>): SpotifyAlbum? {
-        val params = mutableMapOf("album" to albumTitle)
-        artists.joined()?.also { params["artist"] = it }
-
-        return search(type = "album", params = params)
-            ?.albums
-            ?.items
-            ?.map { it.matchAlbumCombo(albumTitle, artists.names()) }
-            ?.minByOrNull { it.distance }
-            ?.spotifyAlbum
-            ?.let { getAlbum(it.id) }
-    }
-
     private fun getSearchQuery(params: Map<String, String?>, freeText: String? = null): String {
         return params.filterValuesNotNull()
             .map { (key, value) -> "$key:${URLEncoder.encode(value, "UTF-8")}" }
@@ -463,18 +437,18 @@ class SpotifyRepository @Inject constructor(
         return SpotifyTrackRecommendations(tracks = response?.tracks ?: emptyList(), requestedTracks = limit)
     }
 
-    private suspend fun matchAlbumCombo(albumTitle: String, artists: Collection<IArtistCredit>): AbstractSpotifyAlbum? {
-        val params = mutableMapOf("album" to albumTitle)
-
-        artists.joined()?.also { params["artist"] = it }
+    private suspend fun matchAlbumCombo(albumCombo: IAlbumCombo<*>): SpotifySimplifiedAlbum? {
+        val params = mutableMapOf("album" to albumCombo.album.title)
+        albumCombo.artists.joined()?.also { params["artist"] = it }
 
         return search(type = "album", params = params)
             ?.albums
             ?.items
-            ?.map { it.matchAlbumCombo(albumTitle, artists.names()) }
+            ?.map { it.toAlbumWithTracks().match(albumCombo) }
             ?.filter { it.distance <= 5 }
             ?.minByOrNull { it.distance }
-            ?.spotifyAlbum
+            ?.albumCombo
+            ?.externalData
     }
 
     private fun getSearchUrl(

@@ -161,9 +161,6 @@ abstract class ArtistDao {
         return trackArtistCredits
     }
 
-    @Query("SELECT Artist.* FROM Artist JOIN TrackArtist ON Artist_id = TrackArtist_artistId WHERE TrackArtist_trackId = :trackId")
-    abstract suspend fun listArtistsByTrackId(trackId: String): List<Artist>
-
     @Transaction
     open suspend fun setAlbumArtists(
         albumId: String,

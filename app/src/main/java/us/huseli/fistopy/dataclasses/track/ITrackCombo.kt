@@ -2,8 +2,8 @@ package us.huseli.fistopy.dataclasses.track
 
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import org.apache.commons.text.similarity.LevenshteinDistance
 import us.huseli.fistopy.dataclasses.album.Album
-import us.huseli.fistopy.dataclasses.album.AlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
@@ -11,8 +11,16 @@ import us.huseli.fistopy.dataclasses.artist.IArtistCredit
 import us.huseli.fistopy.dataclasses.artist.ITrackArtistCredit
 import us.huseli.fistopy.dataclasses.artist.TrackArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
+import us.huseli.fistopy.interfaces.IAlbumArtOwner
+import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
+import kotlin.math.absoluteValue
 
-interface ITrackCombo : Comparable<ITrackCombo> {
+interface ITrackCombo<T : ITrackCombo<T>> : Comparable<ITrackCombo<*>>, IAlbumArtOwner, IHasMusicBrainzIds {
+    class TrackMatch<T>(
+        val distance: Int,
+        val trackCombo: T,
+    )
+
     val track: Track
     val album: IAlbum?
     val trackArtists: List<ITrackArtistCredit>
@@ -24,16 +32,22 @@ interface ITrackCombo : Comparable<ITrackCombo> {
     val artistString: String?
         get() = trackArtists.joined() ?: albumArtists.joined()
 
-    val fullImageUrl: String?
-        get() = album?.fullImageUrl ?: track.fullImageUrl
-
-    val thumbnailUrl: String?
-        get() = album?.thumbnailUrl ?: track.thumbnailUrl
-
     val year: Int?
         get() = track.year ?: album?.year
 
-    override fun compareTo(other: ITrackCombo): Int {
+    override val fullImageUrl: String?
+        get() = album?.fullImageUrl ?: track.fullImageUrl
+
+    override val thumbnailUrl: String?
+        get() = album?.thumbnailUrl ?: track.thumbnailUrl
+
+    override val musicBrainzReleaseGroupId: String?
+        get() = album?.musicBrainzReleaseGroupId
+
+    override val musicBrainzReleaseId: String?
+        get() = album?.musicBrainzReleaseId
+
+    override fun compareTo(other: ITrackCombo<*>): Int {
         if (track.discNumberNonNull != other.track.discNumberNonNull)
             return track.discNumberNonNull - other.track.discNumberNonNull
         if (track.albumPositionNonNull != other.track.albumPositionNonNull)
@@ -41,33 +55,55 @@ interface ITrackCombo : Comparable<ITrackCombo> {
         return track.title.compareTo(other.track.title)
     }
 
-    fun toString(
-        showAlbumPosition: Boolean = true,
-        showArtist: Boolean = true,
-        showYear: Boolean = false,
-        showArtistIfSameAsAlbumArtist: Boolean = false,
-        albumCombo: AlbumWithTracksCombo? = null,
-    ): String {
-        var string = ""
+    fun getDistance(other: ITrackCombo<*>): Int {
+        val levenshtein = LevenshteinDistance()
+        val title = track.title.lowercase()
+        val titleDistances = mutableListOf<Int>()
+        val combinedTitle = trackArtists.joined()?.let { "$it - $title" }?.lowercase() ?: title
+        var distance = 0
 
-        if (showAlbumPosition) {
-            if (albumCombo != null) string += getPositionString(albumCombo.discCount) + ". "
-            else if (track.albumPosition != null) string += "${track.albumPosition}. "
+        // Test various permutations of "[artist] - [title]":
+        if (this.trackArtists.isEmpty()) {
+            titleDistances.add(levenshtein.apply(other.track.title.lowercase(), title))
         }
-        if (showArtist) {
-            val trackArtist = trackArtists.joined()
-            val albumArtist = albumArtists.joined()
-
-            if (trackArtist != null && (showArtistIfSameAsAlbumArtist || trackArtist != albumArtist))
-                string += "$trackArtist - "
-            else if (albumArtist != null && showArtistIfSameAsAlbumArtist)
-                string += "$albumArtist - "
+        trackArtists.joined()?.also {
+            titleDistances.add(levenshtein.apply("$it - ${other.track.title}".lowercase(), combinedTitle))
         }
-        string += track.title
-        if (track.year != null && showYear) string += " (${track.year})"
+        other.albumArtists.joined()?.also {
+            titleDistances.add(levenshtein.apply("$it - ${other.track.title}".lowercase(), combinedTitle))
+        }
+        for (otherArtist in other.albumArtists + other.trackArtists) {
+            if (trackArtists.isEmpty()) {
+                titleDistances.add(
+                    levenshtein.apply(
+                        "${otherArtist.name} - ${other.track.title}".lowercase(),
+                        title,
+                    )
+                )
+            } else {
+                for (artist in trackArtists) {
+                    titleDistances.add(
+                        levenshtein.apply(
+                            "${otherArtist.name} - ${other.track.title}".lowercase(),
+                            "${artist.name} - $title".lowercase(),
+                        )
+                    )
+                }
+            }
+        }
+        distance += titleDistances.min()
 
-        return string
+        // Add number of seconds diffing:
+        track.duration?.inWholeSeconds
+            ?.let { other.track.duration?.inWholeSeconds?.minus(it) }
+            ?.also { distance += it.toInt().absoluteValue }
+
+        return distance
     }
+
+    @Suppress("UNCHECKED_CAST")
+    fun matchTrack(other: ITrackCombo<*>) =
+        TrackMatch<T>(distance = getDistance(other), trackCombo = this as T)
 
     fun toUiState(isSelected: Boolean = false): TrackUiState = track.toUiState(isSelected = isSelected).copy(
         albumTitle = album?.title,
@@ -81,7 +117,7 @@ interface ITrackCombo : Comparable<ITrackCombo> {
         thumbnailUrl = album?.thumbnailUrl ?: track.thumbnailUrl,
     )
 
-    fun withTrack(track: Track): ITrackCombo
+    fun withTrack(track: Track): T
 
     private fun getPositionString(albumDiscCount: Int): String =
         if (albumDiscCount > 1 && track.discNumber != null && track.albumPosition != null)
@@ -90,12 +126,20 @@ interface ITrackCombo : Comparable<ITrackCombo> {
 }
 
 
-fun Iterable<ITrackCombo>.tracks(): List<Track> = map { it.track }
+fun Iterable<ITrackCombo<*>>.tracks(): List<Track> = map { it.track }
 
-fun Iterable<ITrackCombo>.toUiStates(): ImmutableList<TrackUiState> = map { it.toUiState() }.toImmutableList()
+fun Iterable<ITrackCombo<*>>.toUiStates(): ImmutableList<TrackUiState> = map { it.toUiState() }.toImmutableList()
 
+fun Iterable<ITrackCombo<*>>.asUnsavedTrackCombos() = map { trackCombo ->
+    UnsavedTrackCombo(
+        track = trackCombo.track,
+        album = trackCombo.album?.asUnsavedAlbum(),
+        trackArtists = trackCombo.trackArtists,
+        albumArtists = trackCombo.albumArtists,
+    )
+}
 
-interface ISavedTrackCombo : ITrackCombo {
+interface ISavedTrackCombo<T : ISavedTrackCombo<T>> : ITrackCombo<T> {
     override val trackArtists: List<TrackArtistCredit>
     override val albumArtists: List<AlbumArtistCredit>
     override val album: Album?

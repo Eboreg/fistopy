@@ -5,21 +5,8 @@ import androidx.room.DatabaseView
 import androidx.room.Embedded
 import androidx.room.Relation
 import us.huseli.fistopy.dataclasses.album.Album
-import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
-import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
-import us.huseli.fistopy.dataclasses.artist.ITrackArtistCredit
 import us.huseli.fistopy.dataclasses.artist.TrackArtistCredit
-import us.huseli.fistopy.stripCommonFixes
-
-data class UnsavedTrackCombo(
-    override val track: Track,
-    override val album: IAlbum? = null,
-    override val trackArtists: List<ITrackArtistCredit> = emptyList(),
-    override val albumArtists: List<IAlbumArtistCredit> = emptyList(),
-) : ITrackCombo {
-    override fun withTrack(track: Track) = copy(track = track)
-}
 
 @DatabaseView(
     """
@@ -37,18 +24,13 @@ data class TrackCombo(
     override val trackArtists: List<TrackArtistCredit> = emptyList<TrackArtistCredit>(),
     @Relation(parentColumn = "Track_albumId", entityColumn = "AlbumArtist_albumId", entity = AlbumArtistCredit::class)
     override val albumArtists: List<AlbumArtistCredit> = emptyList<AlbumArtistCredit>(),
-) : ISavedTrackCombo {
-    override fun withTrack(track: Track) = copy(track = track)
-
+) : ISavedTrackCombo<TrackCombo> {
     override fun equals(other: Any?) = other is TrackCombo
         && other.track == track
         && other.trackArtists == trackArtists
         && other.albumArtists == albumArtists
 
     override fun hashCode(): Int = 31 * (31 * track.hashCode() + trackArtists.hashCode()) + albumArtists.hashCode()
-}
 
-fun Iterable<UnsavedTrackCombo>.stripTitleCommons(): List<UnsavedTrackCombo> =
-    zip(map { it.track.title }.stripCommonFixes()).map { (combo, title) ->
-        combo.copy(track = combo.track.copy(title = title.replace(Regex(" \\([^)]*$"), "")))
-    }
+    override fun withTrack(track: Track) = copy(track = track)
+}

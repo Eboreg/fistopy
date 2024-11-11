@@ -10,51 +10,44 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import us.huseli.fistopy.dataclasses.album.LocalImportableAlbum
-import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
 import us.huseli.fistopy.externalcontent.holders.AbstractAlbumImportHolder
 import us.huseli.fistopy.repositories.Repositories
 
 class LocalBackend(
     private val repos: Repositories,
     private val context: Context,
-) : IExternalImportBackend<LocalImportableAlbum> {
+) : IExternalImportBackend {
     private val _localImportUri = MutableStateFlow<Uri?>(null)
 
-    override val albumImportHolder: AbstractAlbumImportHolder<LocalImportableAlbum> =
-        object : AbstractAlbumImportHolder<LocalImportableAlbum>() {
-            private val _importDirectoryFile =
-                _localImportUri.map { uri -> uri?.let { DocumentFile.fromTreeUri(context, it) } }
+    override val albumImportHolder = object : AbstractAlbumImportHolder<UnsavedAlbum>() {
+        private val _importDirectoryFile =
+            _localImportUri.map { uri -> uri?.let { DocumentFile.fromTreeUri(context, it) } }
 
-            override val _isLoading: MutableStateFlow<Boolean> = MutableStateFlow(false)
-            override val isTotalCountExact: Flow<Boolean> = flowOf(true)
-            override val canImport = _importDirectoryFile.map { it != null }
+        override val _isLoading: MutableStateFlow<Boolean> = MutableStateFlow(false)
+        override val isTotalCountExact: Flow<Boolean> = flowOf(true)
+        override val canImport = _importDirectoryFile.map { it != null }
 
-            override suspend fun convertToAlbumWithTracks(
-                externalAlbum: LocalImportableAlbum,
-                albumId: String,
-            ): UnsavedAlbumWithTracksCombo =
-                externalAlbum.toAlbumWithTracks(isLocal = true, isInLibrary = true, albumId = albumId)
+        override fun getExternalAlbumChannel() =
+            Channel<ExternalAlbumWithTracksCombo<UnsavedAlbum>>().also { channel ->
+                launchOnIOThread {
+                    _importDirectoryFile.filterNotNull().collectLatest { documentFile ->
+                        val existingTrackUris = repos.track.listTrackLocalUris()
+                        val albumChannel = repos.localMedia.importableAlbumsChannel(documentFile, existingTrackUris)
 
-            override fun getExternalAlbumChannel(): Channel<LocalImportableAlbum> =
-                Channel<LocalImportableAlbum>().also { channel ->
-                    launchOnIOThread {
-                        _importDirectoryFile.filterNotNull().collectLatest { documentFile ->
-                            val existingTrackUris = repos.track.listTrackLocalUris()
-                            val albumChannel = repos.localMedia.importableAlbumsChannel(documentFile, existingTrackUris)
-
-                            _items.value = emptyList()
-                            _allItemsFetched.value = false
-                            for (localAlbum in albumChannel) {
-                                channel.send(localAlbum)
-                            }
-                            _allItemsFetched.value = true
+                        _items.value = emptyList()
+                        _allItemsFetched.value = false
+                        for (combo in albumChannel) {
+                            channel.send(combo)
                         }
+                        _allItemsFetched.value = true
                     }
                 }
+            }
 
-            override suspend fun getPreviouslyImportedIds(): List<String> = emptyList()
-        }
+        override suspend fun getPreviouslyImportedIds(): List<String> = emptyList()
+    }
 
     fun setLocalImportUri(uri: Uri) {
         _localImportUri.value = uri

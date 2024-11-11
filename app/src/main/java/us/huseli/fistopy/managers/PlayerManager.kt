@@ -108,7 +108,7 @@ class PlayerManager @Inject constructor(
         }
     }
 
-    private fun flowQueueTrackCombos(trackCombos: List<ISavedTrackCombo>, startIndex: Int = 0) = flow {
+    private fun flowQueueTrackCombos(trackCombos: List<ISavedTrackCombo<*>>, startIndex: Int = 0) = flow {
         if (trackCombos.size > startIndex) {
             getQueueTrackComboByTrackCombo(trackCombos[startIndex])?.also { emit(it) }
         }
@@ -129,12 +129,8 @@ class PlayerManager @Inject constructor(
     private suspend fun flowQueueTrackCombosByTrackId(trackIds: Collection<String>): Flow<QueueTrackCombo> =
         flowQueueTrackCombos(repos.track.listTrackCombosById(trackIds))
 
-    private suspend fun getQueueTrackComboByTrackCombo(combo: ISavedTrackCombo): QueueTrackCombo? {
-        val updatedTrack = repos.youtube.ensureTrackPlayUri(
-            track = combo.track,
-            albumArtists = combo.albumArtists,
-            trackArtists = combo.trackArtists,
-        ) { repos.track.upsertTrack(it) }
+    private suspend fun getQueueTrackComboByTrackCombo(combo: ISavedTrackCombo<*>): QueueTrackCombo? {
+        val updatedTrack = repos.youtube.ensureTrackPlayUri(combo) { repos.track.upsertTrack(it) }
 
         return updatedTrack.playUri?.let { uri ->
             QueueTrackCombo(

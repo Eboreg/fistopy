@@ -1,13 +1,11 @@
 package us.huseli.fistopy.externalcontent
 
-import us.huseli.fistopy.dataclasses.track.TrackUiState
 import us.huseli.fistopy.externalcontent.holders.AbstractAlbumSearchHolder
-import us.huseli.fistopy.externalcontent.holders.AbstractSearchHolder
-import us.huseli.fistopy.interfaces.IExternalAlbum
+import us.huseli.fistopy.externalcontent.holders.AbstractTrackSearchHolder
 
-interface IExternalSearchBackend<T : IExternalAlbum> {
-    val albumSearchHolder: AbstractAlbumSearchHolder<T>
-    val trackSearchHolder: AbstractSearchHolder<TrackUiState>
+interface IExternalSearchBackend {
+    val albumSearchHolder: AbstractAlbumSearchHolder<*>
+    val trackSearchHolder: AbstractTrackSearchHolder<*>
 
     fun getSearchHolder(listType: ExternalListType) = when (listType) {
         ExternalListType.ALBUMS -> albumSearchHolder

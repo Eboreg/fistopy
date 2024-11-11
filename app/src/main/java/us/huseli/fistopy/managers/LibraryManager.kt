@@ -26,12 +26,10 @@ import us.huseli.fistopy.database.Database
 import us.huseli.fistopy.dataclasses.MediaStoreImage
 import us.huseli.fistopy.dataclasses.ProgressData
 import us.huseli.fistopy.dataclasses.album.AlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.withUpdates
-import us.huseli.fistopy.dataclasses.artist.IArtistCredit
+import us.huseli.fistopy.dataclasses.artist.ITrackArtistCredit
 import us.huseli.fistopy.dataclasses.artist.UnsavedTrackArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
 import us.huseli.fistopy.dataclasses.musicbrainz.capitalizeGenreName
@@ -42,6 +40,7 @@ import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.track.TrackCombo
 import us.huseli.fistopy.dataclasses.track.listCoverImages
 import us.huseli.fistopy.enums.ListUpdateStrategy
+import us.huseli.fistopy.enums.TrackMergeStrategy
 import us.huseli.fistopy.getBitmap
 import us.huseli.fistopy.getSquareSize
 import us.huseli.fistopy.interfaces.ILogger
@@ -103,7 +102,7 @@ class LibraryManager @Inject constructor(
 
             repos.musicBrainz.listReleasesByReleaseGroupId(releaseGroupId).firstOrNull()?.also { release ->
                 val albumCombo =
-                    release.toAlbumWithTracks(isLocal = false, isInLibrary = false, releaseGroup = releaseGroup)
+                    release.toAlbumWithTracks(isLocal = false, isInLibrary = false, releaseGroupId = releaseGroup?.id)
                 val album = repos.album.getOrCreateAlbumByMusicBrainzId(albumCombo.album, releaseGroupId, release.id)
                 val albumArtists = albumCombo.artists.map { it.withAlbumId(album.albumId) }
 
@@ -118,7 +117,15 @@ class LibraryManager @Inject constructor(
     }
 
     suspend fun deleteLocalAlbumFiles(albumIds: Collection<String>) {
-        deleteLocalAlbumComboFiles(repos.album.listAlbumsWithTracks(albumIds), updateDb = true)
+        val combos = repos.album.listAlbumsWithTracks(albumIds)
+        val tracks = combos.flatMap { it.tracks }
+
+        if (tracks.isNotEmpty()) repos.track.deleteTrackFiles(tracks)
+        if (combos.isNotEmpty()) database.withTransaction {
+            repos.album.setAlbumsIsLocal(combos.map { it.album.albumId }, false)
+            combos.filter { it.album.albumArt?.isLocal == true }.forEach { repos.album.clearAlbumArt(it.album.albumId) }
+            if (tracks.isNotEmpty()) repos.track.clearLocalUris(tracks.map { it.trackId })
+        }
     }
 
     fun doStartupTasks() {
@@ -244,12 +251,26 @@ class LibraryManager @Inject constructor(
                 val existingAlbumCombos = repos.album.listAlbumCombos()
                 val existingTrackUris = repos.track.listTrackLocalUris()
 
-                for (localAlbum in repos.localMedia.importableAlbumsChannel(localMusicDirectory, existingTrackUris)) {
+                for (localCombo in repos.localMedia.importableAlbumsChannel(localMusicDirectory, existingTrackUris)) {
                     val existingCombo = existingAlbumCombos.find {
-                        (it.album.title == localAlbum.title && it.artists.joined() == localAlbum.artistName) ||
-                            (it.album.musicBrainzReleaseId != null && it.album.musicBrainzReleaseId == localAlbum.musicBrainzReleaseId)
+                        (it.album.title == localCombo.album.title && it.artists.joined() == localCombo.artists.joined()) ||
+                            (it.album.musicBrainzReleaseId != null && it.album.musicBrainzReleaseId == localCombo.album.musicBrainzReleaseId)
                     }
-                    val combo = localAlbum.toAlbumWithTracks(base = existingCombo)
+                    val combo = if (existingCombo != null) {
+                        localCombo.withUpdates {
+                            updateAlbum {
+                                it.copy(
+                                    albumId = existingCombo.album.albumId,
+                                    musicBrainzReleaseGroupId = it.musicBrainzReleaseGroupId
+                                        ?: existingCombo.album.musicBrainzReleaseGroupId,
+                                    musicBrainzReleaseId = it.musicBrainzReleaseId
+                                        ?: existingCombo.album.musicBrainzReleaseId,
+                                    year = it.year ?: existingCombo.album.year,
+                                )
+                            }
+                            mergeArtists(existingCombo.artists, ListUpdateStrategy.MERGE)
+                        }
+                    } else localCombo
                     val albumArt = getBestNewLocalAlbumArt(combo.trackCombos)
                         ?: repos.musicBrainz.getCoverArtArchiveImage(
                             combo.album.musicBrainzReleaseId,
@@ -297,21 +318,43 @@ class LibraryManager @Inject constructor(
         discNumber: Int? = null,
     ) {
         val trackCombo = repos.track.getTrackComboById(trackId)
-        val albumCombo = trackCombo?.track?.albumId?.let { repos.album.getAlbumCombo(it) }
 
-        if (trackCombo != null) updateTrack(
-            trackCombo = trackCombo,
-            title = title,
-            year = year,
-            artistNames = artistNames,
-            albumPosition = albumPosition,
-            discNumber = discNumber,
-            album = albumCombo?.album,
-            albumArtists = albumCombo?.artists,
-        )
+        if (trackCombo != null) {
+            var finalTrackArtists: List<ITrackArtistCredit> = trackCombo.trackArtists.toList()
+
+            if (artistNames.filter { it.isNotEmpty() } != trackCombo.trackArtists.map { it.name }) {
+                finalTrackArtists = artistNames.filter { it.isNotEmpty() }.mapIndexed { index, name ->
+                    UnsavedTrackArtistCredit(
+                        name = name,
+                        trackId = trackCombo.track.trackId,
+                        position = index,
+                    )
+                }
+
+                repos.artist.setTrackArtists(trackCombo.track.trackId, finalTrackArtists)
+            }
+
+            val updatedTrack = ensureTrackMetadata(
+                track = trackCombo.track.copy(
+                    title = title,
+                    year = year,
+                    albumPosition = albumPosition ?: trackCombo.track.albumPosition,
+                    discNumber = discNumber ?: trackCombo.track.discNumber,
+                ),
+                commit = false,
+            )
+
+            repos.track.upsertTrack(updatedTrack)
+            repos.localMedia.tagTrack(
+                track = updatedTrack,
+                trackArtists = finalTrackArtists,
+                album = trackCombo.album,
+                albumArtists = trackCombo.albumArtists,
+            )
+        }
     }
 
-    suspend fun upsertAlbumWithTracks(combo: IAlbumWithTracksCombo<IAlbum>) {
+    suspend fun upsertAlbumWithTracks(combo: IAlbumWithTracksCombo<*, *>) {
         database.withTransaction {
             val finalCombo = getRemoteAlbumWithTracks(combo) ?: combo
 
@@ -326,7 +369,7 @@ class LibraryManager @Inject constructor(
     /** PRIVATE METHODS ***********************************************************************************************/
 
     private fun createTrackDownloadTask(
-        combo: ITrackCombo,
+        combo: ITrackCombo<*>,
         directory: DocumentFile,
         onError: (Throwable) -> Unit = {},
     ): TrackDownloadTask {
@@ -355,21 +398,15 @@ class LibraryManager @Inject constructor(
         return task
     }
 
-    private suspend fun deleteLocalAlbumComboFiles(combos: Collection<AlbumWithTracksCombo>, updateDb: Boolean = true) {
-        val tracks = combos.flatMap { it.tracks }
-
-        if (tracks.isNotEmpty()) repos.track.deleteTrackFiles(tracks)
-
-        if (updateDb && combos.isNotEmpty()) database.withTransaction {
-            repos.album.setAlbumsIsLocal(combos.map { it.album.albumId }, false)
-            combos.filter { it.album.albumArt?.isLocal == true }.forEach { repos.album.clearAlbumArt(it.album.albumId) }
-            if (tracks.isNotEmpty()) repos.track.clearLocalUris(tracks.map { it.trackId })
-        }
-    }
-
-    private suspend fun getRemoteAlbumWithTracks(combo: IAlbumWithTracksCombo<IAlbum>): UnsavedAlbumWithTracksCombo? {
-        val spotifyCombo = updateAlbumFromSpotify(combo)
-        val mbCombo = updateAlbumFromMusicBrainz(spotifyCombo ?: combo)
+    private suspend fun getRemoteAlbumWithTracks(combo: IAlbumWithTracksCombo<*, *>): UnsavedAlbumWithTracksCombo? {
+        val spotifyCombo = if (combo.album.spotifyId == null) repos.spotify.matchAlbumWithTracks(
+            combo = combo,
+            trackMergeStrategy = TrackMergeStrategy.KEEP_SELF,
+        ) else null
+        val mbCombo = if (combo.album.musicBrainzReleaseId == null) repos.musicBrainz.matchAlbumWithTracks(
+            combo = combo,
+            trackMergeStrategy = TrackMergeStrategy.KEEP_SELF,
+        ) else null
 
         return mbCombo ?: spotifyCombo
     }
@@ -401,52 +438,16 @@ class LibraryManager @Inject constructor(
         }
     }
 
-    private suspend fun getBestNewLocalAlbumArt(trackCombos: Collection<ITrackCombo>): MediaStoreImage? =
+    private suspend fun getBestNewLocalAlbumArt(trackCombos: Collection<ITrackCombo<*>>): MediaStoreImage? =
         trackCombos.map { it.track }
             .listCoverImages(context)
             .map { it.uri.toMediaStoreImage() }
-            .maxByOrNull { albumArt -> albumArt.fullUri.getBitmap(context)?.getSquareSize() ?: 0 }
-
-    private suspend fun updateAlbumFromMusicBrainz(
-        combo: IAlbumWithTracksCombo<IAlbum>,
-        trackMergeStrategy: TrackMergeStrategy = TrackMergeStrategy.KEEP_SELF,
-        albumArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-        trackArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-        tagUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.MERGE,
-    ): UnsavedAlbumWithTracksCombo? {
-        return if (combo.album.musicBrainzReleaseId == null) {
-            repos.musicBrainz.matchAlbumWithTracks(
-                combo = combo,
-                trackMergeStrategy = trackMergeStrategy,
-                albumArtistUpdateStrategy = albumArtistUpdateStrategy,
-                trackArtistUpdateStrategy = trackArtistUpdateStrategy,
-                tagUpdateStrategy = tagUpdateStrategy,
-            )
-        } else null
-    }
-
-    private suspend fun updateAlbumFromSpotify(
-        combo: IAlbumWithTracksCombo<IAlbum>,
-        trackMergeStrategy: TrackMergeStrategy = TrackMergeStrategy.KEEP_SELF,
-        albumArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-        trackArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
-        tagUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.MERGE,
-    ): UnsavedAlbumWithTracksCombo? {
-        return if (combo.album.spotifyId == null) {
-            repos.spotify.matchAlbumWithTracks(
-                combo = combo,
-                trackMergeStrategy = trackMergeStrategy,
-                albumArtistUpdateStrategy = albumArtistUpdateStrategy,
-                trackArtistUpdateStrategy = trackArtistUpdateStrategy,
-                tagUpdateStrategy = tagUpdateStrategy,
-            )
-        } else null
-    }
+            .maxByOrNull { albumArt -> context.getBitmap(albumArt.fullUri)?.getSquareSize() ?: 0 }
 
     private suspend fun updateGenreList() {
         /** Fetches Musicbrainz' complete genre list. */
         try {
-            val existingGenreNames = repos.album.listTags().map { it.name.lowercase() }.toSet()
+            val existingGenreNames = repos.album.listTagNames().map { it.lowercase() }.toSet()
             val mbGenreNames = repos.musicBrainz.listAllGenreNames()
             val newTags = mbGenreNames
                 .minus(existingGenreNames)
@@ -456,48 +457,5 @@ class LibraryManager @Inject constructor(
         } catch (e: Exception) {
             logError("updateGenreList: $e", e)
         }
-    }
-
-    private suspend fun updateTrack(
-        trackCombo: ITrackCombo,
-        title: String,
-        year: Int?,
-        artistNames: Collection<String>,
-        albumPosition: Int? = null,
-        discNumber: Int? = null,
-        album: IAlbum? = null,
-        albumArtists: Collection<IArtistCredit>? = null,
-    ) {
-        var finalTrackArtists = trackCombo.trackArtists.toList()
-
-        if (artistNames.filter { it.isNotEmpty() } != trackCombo.trackArtists.map { it.name }) {
-            finalTrackArtists = artistNames.filter { it.isNotEmpty() }.mapIndexed { index, name ->
-                UnsavedTrackArtistCredit(
-                    name = name,
-                    trackId = trackCombo.track.trackId,
-                    position = index,
-                )
-            }
-
-            repos.artist.setTrackArtists(trackCombo.track.trackId, finalTrackArtists)
-        }
-
-        val updatedTrack = ensureTrackMetadata(
-            track = trackCombo.track.copy(
-                title = title,
-                year = year,
-                albumPosition = albumPosition ?: trackCombo.track.albumPosition,
-                discNumber = discNumber ?: trackCombo.track.discNumber,
-            ),
-            commit = false,
-        )
-
-        repos.track.upsertTrack(updatedTrack)
-        repos.localMedia.tagTrack(
-            track = updatedTrack,
-            trackArtists = finalTrackArtists,
-            album = album,
-            albumArtists = albumArtists,
-        )
     }
 }

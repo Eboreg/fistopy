@@ -2,7 +2,6 @@ package us.huseli.fistopy.viewmodels
 
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
@@ -16,12 +15,13 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
+import us.huseli.fistopy.AbstractAlbumUiStateListHandler
+import us.huseli.fistopy.AbstractTrackUiStateListHandler
 import us.huseli.fistopy.AlbumDownloadTask
 import us.huseli.fistopy.TrackDownloadTask
 import us.huseli.fistopy.dataclasses.album.AlbumCallbacks
 import us.huseli.fistopy.dataclasses.album.AlbumSelectionCallbacks
-import us.huseli.fistopy.dataclasses.album.IUnsavedAlbumCombo
 import us.huseli.fistopy.dataclasses.album.ImportableAlbumUiState
 import us.huseli.fistopy.dataclasses.callbacks.AppDialogCallbacks
 import us.huseli.fistopy.dataclasses.track.TrackUiState
@@ -31,7 +31,6 @@ import us.huseli.fistopy.externalcontent.SearchBackend
 import us.huseli.fistopy.externalcontent.SearchParams
 import us.huseli.fistopy.externalcontent.holders.AbstractAlbumSearchHolder
 import us.huseli.fistopy.externalcontent.holders.AbstractSearchHolder
-import us.huseli.fistopy.interfaces.IExternalAlbum
 import us.huseli.fistopy.interfaces.IStringIdItem
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
@@ -43,10 +42,10 @@ import javax.inject.Inject
 class ExternalSearchViewModel @Inject constructor(
     repos: Repositories,
     private val managers: Managers,
-) : AbstractAlbumListViewModel<ImportableAlbumUiState>("ExternalSearchViewModel", repos, managers) {
+) : AbstractBaseViewModel() {
     private val _albumIdsInDb = mutableSetOf<String>()
     private val _backendKey = MutableStateFlow(SearchBackend.YOUTUBE)
-    private val _currentBackend: IExternalSearchBackend<out IExternalAlbum>
+    private val _currentBackend: IExternalSearchBackend
         get() = managers.external.getSearchBackend(_backendKey.value)
     private val _currentHolder: AbstractSearchHolder<out IStringIdItem>
         get() = managers.external.getSearchBackend(_backendKey.value).getSearchHolder(_listType.value)
@@ -55,22 +54,51 @@ class ExternalSearchViewModel @Inject constructor(
 
     private val _holder: Flow<AbstractSearchHolder<out IStringIdItem>> =
         combine(_backend, _listType) { backend, listType -> backend.getSearchHolder(listType) }
-    private val _albumSearchHolder: Flow<AbstractAlbumSearchHolder<out IExternalAlbum>> =
+    private val _albumSearchHolder: Flow<AbstractAlbumSearchHolder<out IStringIdItem>> =
         _backend.mapLatest { it.albumSearchHolder }
     private val _trackSearchHolder: Flow<AbstractSearchHolder<TrackUiState>> =
         _backend.mapLatest { it.trackSearchHolder }
 
-    override val baseAlbumUiStates: StateFlow<ImmutableList<ImportableAlbumUiState>> = _backend
-        .flatMapLatest { it.albumSearchHolder.currentPageItems.map { states -> states.toImmutableList() } }
-        .stateWhileSubscribed(persistentListOf())
-    override val baseTrackUiStates: StateFlow<ImmutableList<TrackUiState>> = _trackSearchHolder
-        .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
-        .stateWhileSubscribed(persistentListOf())
+    private val albumStateHandler = object : AbstractAlbumUiStateListHandler<ImportableAlbumUiState>(
+        key = "externalsearch",
+        repos = repos,
+        managers = managers,
+    ) {
+        override val baseItems: StateFlow<List<ImportableAlbumUiState>> = _backend
+            .flatMapLatest { it.albumSearchHolder.currentPageItems.map { states -> states.toImmutableList() } }
+            .stateWhileSubscribed(persistentListOf())
+        override val selectedItemIds: Flow<List<String>> = _albumSearchHolder.flatMapLatest { it.selectedItemIds }
 
-    override val selectedAlbumIds: Flow<List<String>> = _albumSearchHolder.flatMapLatest { it.selectedItemIds }
-    override val selectedTrackStateIds: StateFlow<Collection<String>> =
-        _trackSearchHolder.flatMapLatest { it.selectedItemIds }.stateWhileSubscribed(emptyList())
+        override fun getAlbumSelectionCallbacks(dialogCallbacks: AppDialogCallbacks): AlbumSelectionCallbacks =
+            super.getAlbumSelectionCallbacks(dialogCallbacks).copy(onDeleteClick = null)
 
+        override fun onItemLongClick(itemId: String) = _currentBackend.albumSearchHolder.onItemLongClick(itemId)
+
+        override fun setItemsIsSelected(itemIds: Iterable<String>, value: Boolean) =
+            _currentBackend.albumSearchHolder.setItemsIsSelected(itemIds, value)
+
+        override fun unselectAllItems() = _currentBackend.albumSearchHolder.deselectAll()
+    }
+
+    private val trackStateHandler = object : AbstractTrackUiStateListHandler<TrackUiState>(
+        key = "externalsearch",
+        repos = repos,
+        managers = managers,
+    ) {
+        override val baseItems: StateFlow<List<TrackUiState>> = _trackSearchHolder
+            .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
+            .stateWhileSubscribed(persistentListOf())
+        override val selectedItemIds: Flow<List<String>> = _trackSearchHolder.flatMapLatest { it.selectedItemIds }
+
+        override fun onItemLongClick(itemId: String) = _currentBackend.trackSearchHolder.onItemLongClick(itemId)
+
+        override fun setItemsIsSelected(itemIds: Iterable<String>, value: Boolean) =
+            _currentBackend.trackSearchHolder.setItemsIsSelected(itemIds, value)
+
+        override fun unselectAllItems() = _currentBackend.trackSearchHolder.deselectAll()
+    }
+
+    val albumUiStates = albumStateHandler.items
     val backendKey = _backendKey.asStateFlow()
     val currentPage = _holder.flatMapLatest { it.currentPage }.stateWhileSubscribed(0)
     val hasNextPage = _holder.flatMapLatest { it.hasNextPage }.stateWhileSubscribed(false)
@@ -78,6 +106,9 @@ class ExternalSearchViewModel @Inject constructor(
     val isSearching = _holder.flatMapLatest { it.isLoadingCurrentPage }.stateWhileSubscribed(false)
     val listType = _listType.asStateFlow()
     val searchCapabilities = _holder.mapLatest { it.searchCapabilities }.stateWhileSubscribed(emptyList())
+    val selectedAlbumCount = albumStateHandler.selectedItemCount
+    val selectedTrackCount = trackStateHandler.selectedItemCount
+    val trackUiStates = trackStateHandler.items
 
     val searchParams = combine(_listType, _backend) { listType, backend ->
         when (listType) {
@@ -92,22 +123,15 @@ class ExternalSearchViewModel @Inject constructor(
         }
     }
 
-    override fun getAlbumSelectionCallbacks(dialogCallbacks: AppDialogCallbacks): AlbumSelectionCallbacks =
-        super.getAlbumSelectionCallbacks(dialogCallbacks).copy(onDeleteClick = null)
-
-    override fun onAlbumLongClick(albumId: String) = _currentBackend.albumSearchHolder.onItemLongClick(albumId)
-    override fun onTrackLongClick(trackId: String) = _currentBackend.trackSearchHolder.onItemLongClick(trackId)
-
-    override fun toggleAlbumSelected(albumId: String) = _currentBackend.albumSearchHolder.toggleItemSelected(albumId)
-    override fun toggleTrackSelected(trackId: String) = _currentBackend.trackSearchHolder.toggleItemSelected(trackId)
-
     fun addAlbumCallbacksSaveHook(callbacks: AlbumCallbacks): AlbumCallbacks =
-        callbacks.withPreHook(viewModelScope.plus(Dispatchers.IO)) { albumId ->
+        callbacks.withPreHook(viewModelScope) { albumId ->
             if (!_albumIdsInDb.contains(albumId)) {
-                val albumCombo = _currentBackend.albumSearchHolder.convertToAlbumWithTracks(albumId)
+                val albumCombo =
+                    withContext(Dispatchers.IO) { _currentBackend.albumSearchHolder.getAlbumWithTracks(albumId) }
+                // val albumCombo = _currentBackend.albumSearchHolder.convertToAlbumWithTracks(albumId)
 
-                if (albumCombo is IUnsavedAlbumCombo) {
-                    managers.library.upsertAlbumWithTracks(albumCombo)
+                if (albumCombo != null) {
+                    withContext(Dispatchers.IO) { managers.library.upsertAlbumWithTracks(albumCombo) }
                     _albumIdsInDb.add(albumCombo.album.albumId)
                 }
             }
@@ -117,13 +141,24 @@ class ExternalSearchViewModel @Inject constructor(
     fun getAlbumDownloadUiStateFlow(albumId: String): StateFlow<AlbumDownloadTask.UiState?> =
         managers.library.getAlbumDownloadUiStateFlow(albumId).stateWhileSubscribed()
 
+    fun getAlbumSelectionCallbacks(dialogCallbacks: AppDialogCallbacks): AlbumSelectionCallbacks =
+        albumStateHandler.getAlbumSelectionCallbacks(dialogCallbacks)
+
     fun getTrackDownloadUiStateFlow(trackId: String): StateFlow<TrackDownloadTask.UiState?> =
         managers.library.getTrackDownloadUiStateFlow(trackId).stateWhileSubscribed()
+
+    fun getTrackSelectionCallbacks(dialogCallbacks: AppDialogCallbacks) =
+        trackStateHandler.getTrackSelectionCallbacks(dialogCallbacks)
 
     fun gotoNextPage() = _currentHolder.gotoNextPage()
     fun gotoPreviousPage() = _currentHolder.gotoPreviousPage()
 
     fun initBackend() = _currentHolder.start()
+
+    fun onAlbumClick(albumId: String, default: (String) -> Unit) = albumStateHandler.onItemClick(albumId, default)
+    fun onAlbumLongClick(albumId: String) = albumStateHandler.onItemLongClick(albumId)
+    fun onTrackClick(state: TrackUiState) = trackStateHandler.onTrackClick(state)
+    fun onTrackLongClick(trackId: String) = trackStateHandler.onItemLongClick(trackId)
 
     fun setBackend(value: SearchBackend) {
         _backendKey.value = value

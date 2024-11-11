@@ -29,7 +29,6 @@ data class MusicBrainzReleaseGroupBrowse(
                     .thenComparator { a, b -> (b.year ?: 0) - (a.year ?: 0) }
         }
 
-        override val artistCredit: List<MusicBrainzArtistCredit>?
-            get() = null
+        override val artistCredit: List<MusicBrainzArtistCredit>? = null
     }
 }

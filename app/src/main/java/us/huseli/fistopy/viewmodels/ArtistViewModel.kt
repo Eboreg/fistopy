@@ -12,23 +12,24 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
-import us.huseli.retaintheme.extensions.launchOnIOThread
+import us.huseli.fistopy.AbstractAlbumUiStateListHandler
+import us.huseli.fistopy.AbstractTrackUiStateListHandler
 import us.huseli.fistopy.Constants.NAV_ARG_ARTIST
 import us.huseli.fistopy.compose.DisplayType
 import us.huseli.fistopy.compose.ListType
 import us.huseli.fistopy.dataclasses.album.AlbumUiState
-import us.huseli.fistopy.dataclasses.album.toUiStates
+import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.artist.ArtistUiState
 import us.huseli.fistopy.dataclasses.artist.UnsavedArtist
+import us.huseli.fistopy.dataclasses.callbacks.AppDialogCallbacks
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseGroupBrowse
 import us.huseli.fistopy.dataclasses.spotify.toNativeArtists
 import us.huseli.fistopy.dataclasses.track.TrackUiState
-import us.huseli.fistopy.dataclasses.track.toUiStates
 import us.huseli.fistopy.enums.AlbumType
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnIOThread
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,11 +37,9 @@ class ArtistViewModel @Inject constructor(
     private val repos: Repositories,
     savedStateHandle: SavedStateHandle,
     private val managers: Managers,
-) : AbstractAlbumListViewModel<AlbumUiState>("ArtistViewModel", repos, managers) {
+) : AbstractBaseViewModel() {
     private val _displayType = MutableStateFlow(DisplayType.LIST)
     private val _listType = MutableStateFlow(ListType.ALBUMS)
-    private val _isLoadingAlbums = MutableStateFlow(true)
-    private val _isLoadingTracks = MutableStateFlow(true)
     private val _otherAlbumTypes =
         MutableStateFlow(listOf(AlbumType.ALBUM, AlbumType.SINGLE, AlbumType.EP, AlbumType.COMPILATION))
     private val artistId: String = savedStateHandle.get<String>(NAV_ARG_ARTIST)!!
@@ -48,17 +47,25 @@ class ArtistViewModel @Inject constructor(
     private val artistMusicBrainzId = artistCombo.map { it?.artist?.musicBrainzId }.distinctUntilChanged()
     private val artistSpotifyId = artistCombo.map { it?.artist?.spotifyId }.distinctUntilChanged()
 
-    override val baseAlbumUiStates: StateFlow<ImmutableList<AlbumUiState>> =
-        repos.album.flowAlbumCombosByArtist(artistId)
-            .map { it.toUiStates() }
-            .onEach { _isLoadingAlbums.value = false }
-            .stateWhileSubscribed(persistentListOf())
+    private val albumStateHandler =
+        object : AbstractAlbumUiStateListHandler<AlbumUiState>(key = "artist", repos = repos, managers = managers) {
+            override val baseItems: StateFlow<List<AlbumUiState>> =
+                repos.album.flowAlbumUiStatesByArtist(artistId).stateWhileSubscribed(emptyList())
+        }
 
-    override val baseTrackUiStates: StateFlow<ImmutableList<TrackUiState>> =
-        repos.track.flowTrackCombosByArtist(artistId)
-            .map { it.toUiStates() }
-            .onEach { _isLoadingTracks.value = false }
-            .stateWhileSubscribed(persistentListOf())
+    private val musicBrainzReleaseGroups = artistMusicBrainzId
+        .filterNotNull()
+        .map { mbid ->
+            repos.musicBrainz.flowArtistReleaseGroups(mbid)
+                .toList()
+                .sortedWith(MusicBrainzReleaseGroupBrowse.ReleaseGroup.comparator)
+        }
+
+    private val trackStateHandler =
+        object : AbstractTrackUiStateListHandler<TrackUiState>(key = "artist", repos = repos, managers = managers) {
+            override val baseItems: StateFlow<List<TrackUiState>> =
+                repos.track.flowTrackUiStatesByArtist(artistId).stateWhileSubscribed(emptyList())
+        }
 
     val relatedArtists: StateFlow<ImmutableList<UnsavedArtist>> = artistSpotifyId
         .filterNotNull()
@@ -67,43 +74,51 @@ class ArtistViewModel @Inject constructor(
         }
         .stateWhileSubscribed(persistentListOf())
 
-    private val _musicBrainzReleaseGroups = artistMusicBrainzId
-        .filterNotNull()
-        .map { mbid ->
-            repos.musicBrainz.flowArtistReleaseGroups(mbid)
-                .toList()
-                .sortedWith(MusicBrainzReleaseGroupBrowse.ReleaseGroup.comparator)
-        }
-
-    val otherAlbums: StateFlow<ImmutableList<MusicBrainzReleaseGroupBrowse.ReleaseGroup>> =
-        combine(_musicBrainzReleaseGroups, _otherAlbumTypes) { releaseGroups, albumTypes ->
-            releaseGroups.filter { it.albumType in albumTypes }.toImmutableList()
+    val otherAlbums: StateFlow<ImmutableList<IAlbum>> =
+        combine(musicBrainzReleaseGroups, _otherAlbumTypes) { releaseGroups, albumTypes ->
+            releaseGroups.filter { it.albumType in albumTypes }.map { it.toAlbum() }.toImmutableList()
         }.stateWhileSubscribed(persistentListOf())
 
     val otherAlbumsPreview =
-        combine(_musicBrainzReleaseGroups, baseAlbumUiStates) { releaseGroups, uiStates ->
+        combine(musicBrainzReleaseGroups, albumStateHandler.baseItems) { releaseGroups, uiStates ->
             releaseGroups
                 .filter { it.id !in uiStates.map { state -> state.musicBrainzReleaseGroupId } }
                 .let { groups ->
                     val albums = groups.filter { it.albumType == AlbumType.ALBUM }
                     if (albums.size >= 10) albums else groups
                 }
+                .map { it.toAlbum() }
                 .toImmutableList()
         }.stateWhileSubscribed(persistentListOf())
 
     val displayType = _displayType.asStateFlow()
-    val isLoadingAlbums = _isLoadingAlbums.asStateFlow()
-    val isLoadingTracks = _isLoadingTracks.asStateFlow()
     val listType = _listType.asStateFlow()
     val otherAlbumTypes: StateFlow<ImmutableList<AlbumType>> =
         _otherAlbumTypes.map { it.toImmutableList() }.stateWhileSubscribed(persistentListOf())
     val uiState: StateFlow<ArtistUiState?> = artistCombo.map { it?.toUiState() }.stateWhileSubscribed()
 
+    val albumUiStates = albumStateHandler.items
+    val isLoadingAlbums = albumStateHandler.isLoadingItems
+    val isLoadingTracks = trackStateHandler.isLoadingItems
+    val selectedAlbumCount = albumStateHandler.selectedItemCount
+    val selectedTrackCount = trackStateHandler.selectedItemCount
+    val trackUiStates = trackStateHandler.items
+
     fun getAlbumDownloadUiStateFlow(albumId: String) =
         managers.library.getAlbumDownloadUiStateFlow(albumId).stateWhileSubscribed()
 
+    fun getAlbumSelectionCallbacks(dialogCallbacks: AppDialogCallbacks) =
+        albumStateHandler.getAlbumSelectionCallbacks(dialogCallbacks)
+
     fun getTrackDownloadUiStateFlow(trackId: String) =
         managers.library.getTrackDownloadUiStateFlow(trackId).stateWhileSubscribed()
+
+    fun getTrackSelectionCallbacks(dialogCallbacks: AppDialogCallbacks) =
+        trackStateHandler.getTrackSelectionCallbacks(dialogCallbacks)
+
+    fun onAlbumClick(albumId: String, default: (String) -> Unit) = albumStateHandler.onItemClick(albumId, default)
+
+    fun onAlbumLongClick(albumId: String) = albumStateHandler.onItemLongClick(albumId)
 
     fun onOtherAlbumClick(releaseGroupId: String, onGotoAlbumClick: (String) -> Unit) =
         managers.library.addTemporaryMusicBrainzAlbum(releaseGroupId, onGotoAlbumClick)
@@ -119,6 +134,10 @@ class ArtistViewModel @Inject constructor(
             }
         }
     }
+
+    fun onTrackClick(state: TrackUiState) = trackStateHandler.onTrackClick(state)
+
+    fun onTrackLongClick(trackId: String) = trackStateHandler.onItemLongClick(trackId)
 
     fun setDisplayType(value: DisplayType) {
         _displayType.value = value

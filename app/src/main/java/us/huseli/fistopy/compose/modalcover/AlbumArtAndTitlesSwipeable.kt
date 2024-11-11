@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import us.huseli.fistopy.Logger
 import us.huseli.fistopy.dataclasses.ModalCoverBooleans
 import us.huseli.fistopy.dataclasses.callbacks.PlaybackCallbacks
 import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiState
@@ -52,40 +51,16 @@ fun AlbumArtAndTitlesSwipeable(
 
     val anchors = remember(previousTrackUiState == null, nextTrackUiState == null) {
         DraggableAnchors {
-            if (previousTrackUiState != null) {
-                Logger.log(
-                    "ModalCover",
-                    "previousTrackUiState=${previousTrackUiState.title} = setting HorizontalDragValue.Previous at $screenWidthPx"
-                )
-                HorizontalDragValue.Previous at screenWidthPx
-            } else {
-                Logger.log(
-                    "ModalCover",
-                    "previousTrackUiState=null = setting HorizontalDragValue.Previous at 0f"
-                )
-                HorizontalDragValue.Previous at 0f
-            }
+            if (previousTrackUiState != null) HorizontalDragValue.Previous at screenWidthPx
+            else HorizontalDragValue.Previous at 0f
+            if (nextTrackUiState != null) HorizontalDragValue.Next at -screenWidthPx
+            else HorizontalDragValue.Next at 0f
             HorizontalDragValue.Current at 0f
-            if (nextTrackUiState != null) {
-                Logger.log(
-                    "ModalCover",
-                    "nextTrackUiState=${nextTrackUiState.title} = setting HorizontalDragValue.Next at ${-screenWidthPx}"
-                )
-                HorizontalDragValue.Next at -screenWidthPx
-            } else {
-                Logger.log(
-                    "ModalCover",
-                    "nextTrackUiState=null = setting HorizontalDragValue.Next at 0f"
-                )
-                HorizontalDragValue.Next at 0f
-            }
         }
     }
 
     val decayAnimationSpec = rememberSplineBasedDecay<Float>()
     val draggableState = remember {
-        Logger.log("ModalCover", "creating AnchoredDraggableState with anchors=$anchors")
-
         AnchoredDraggableState(
             initialValue = HorizontalDragValue.Current,
             anchors = anchors,
@@ -94,11 +69,6 @@ fun AlbumArtAndTitlesSwipeable(
             snapAnimationSpec = SpringSpec(),
             decayAnimationSpec = decayAnimationSpec,
             confirmValueChange = { newValue ->
-                if (newValue != currentDragValue)
-                    Logger.log(
-                        "ModalCover",
-                        "confirmValueChange: currentDragValue=$currentDragValue, setting it to $newValue. anchors=$anchors",
-                    )
                 currentDragValue = newValue
                 true
             },
@@ -107,17 +77,9 @@ fun AlbumArtAndTitlesSwipeable(
 
     LaunchedEffect(currentDragValue) {
         when (currentDragValue) {
-            HorizontalDragValue.Previous -> {
-                Logger.log("ModalCover", "LaunchedEffect($currentDragValue): running skipToPrevious()")
-                playbackCallbacks.skipToPrevious()
-            }
-            HorizontalDragValue.Current -> {
-                Logger.log("ModalCover", "LaunchedEffect($currentDragValue): doing nothing")
-            }
-            HorizontalDragValue.Next -> {
-                Logger.log("ModalCover", "LaunchedEffect($currentDragValue): running skipToNext()")
-                playbackCallbacks.skipToNext()
-            }
+            HorizontalDragValue.Previous -> playbackCallbacks.skipToPrevious()
+            HorizontalDragValue.Current -> {}
+            HorizontalDragValue.Next -> playbackCallbacks.skipToNext()
         }
     }
 
@@ -126,10 +88,6 @@ fun AlbumArtAndTitlesSwipeable(
     }
 
     LaunchedEffect(trackUiState.id) {
-        Logger.log(
-            "ModalCover",
-            "LaunchedEffect(${trackUiState.id}): setting previousTrackUiStateMutable=${previousTrackUiState?.title}, nextTrackUiStateMutable=${nextTrackUiState?.title}, snapping to Current"
-        )
         nextTrackUiStateMutable = nextTrackUiState
         previousTrackUiStateMutable = previousTrackUiState
         draggableState.snapTo(HorizontalDragValue.Current)

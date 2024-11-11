@@ -24,7 +24,9 @@ data class AlbumTrackUiState(
     override val youtubeWebUrl: String?,
     val durationMs: Long?,
     val positionString: String,
-) : AbstractTrackUiState() {
+) : AbstractTrackUiState(), ISelectableTrackUiState {
     override val trackId: String
         get() = id
+
+    override fun withIsSelected(value: Boolean) = copy(isSelected = value)
 }

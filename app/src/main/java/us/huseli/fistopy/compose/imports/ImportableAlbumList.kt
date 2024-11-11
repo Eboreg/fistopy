@@ -42,7 +42,7 @@ fun ImportableAlbumList(
         ImportableAlbumCard(
             state = state,
             onClick = {
-                if (state.isSaved) onGotoAlbumClick(state.albumId)
+                if (state.isImported) onGotoAlbumClick(state.albumId)
                 else toggleSelected(state.id)
             },
             onLongClick = { onLongClick(state.id) },

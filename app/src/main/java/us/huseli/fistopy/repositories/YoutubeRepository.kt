@@ -13,9 +13,10 @@ import us.huseli.fistopy.Request
 import us.huseli.fistopy.YoutubeAndroidClient
 import us.huseli.fistopy.YoutubeAndroidTestSuiteClient
 import us.huseli.fistopy.YoutubeWebClient
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.artist.IArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
+import us.huseli.fistopy.dataclasses.track.ITrackCombo
 import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.youtube.YoutubeMetadata
 import us.huseli.fistopy.dataclasses.youtube.YoutubePlaylistCombo
@@ -107,57 +108,42 @@ class YoutubeRepository @Inject constructor(
     }
 
     suspend fun ensureTrackPlayUri(
-        track: Track,
-        albumArtists: Collection<IArtistCredit>? = null,
-        trackArtists: Collection<IArtistCredit>? = null,
+        trackCombo: ITrackCombo<*>,
         onChanged: suspend (Track) -> Unit = {},
     ): Track {
-        return track.takeIf { it.playUri != null }
-            ?: track.takeIf { it.youtubeVideo != null }?.let { ensureTrackMetadata(it, onChanged = onChanged) }
-            ?: getBestTrackMatch(
-                track = track,
-                albumArtists = albumArtists,
-                trackArtists = trackArtists,
-            )?.also { onChanged(it) } ?: track
+        return trackCombo.track.takeIf { it.playUri != null }
+            ?: trackCombo.track.takeIf { it.youtubeVideo != null }
+                ?.let { ensureTrackMetadata(it, onChanged = onChanged) }
+            ?: getBestTrackMatch(trackCombo)?.also { onChanged(it) }
+            ?: trackCombo.track
     }
 
     suspend fun getBestAlbumMatch(
-        combo: IAlbumWithTracksCombo<*>,
+        combo: IAlbumWithTracksCombo<*, *>,
         maxDistance: Double = 1.0,
         progressCallback: (Double) -> Unit = {},
-    ): YoutubePlaylistCombo.AlbumMatch? {
+    ): IAlbumWithTracksCombo.AlbumMatch<ExternalAlbumWithTracksCombo<YoutubePlaylistCombo>>? {
         val playlistCombos = searchPlaylistCombos(
             query = combo.artists.joined()?.let { "$it ${combo.album.title}" } ?: combo.album.title,
             progressCallback = progressCallback,
         )
 
         return playlistCombos
-            .map { it.matchAlbumWithTracks(combo) }
+            .map { it.toAlbumWithTracks().match(combo) }
             .filter { it.distance <= maxDistance }
             .minByOrNull { it.distance }
     }
 
-    suspend fun getBestTrackMatch(
-        track: Track,
-        albumArtists: Collection<IArtistCredit>? = null,
-        trackArtists: Collection<IArtistCredit>? = null,
-        maxDistance: Int = 5,
-    ): Track? {
-        val artistString = trackArtists?.joined()
-        val query = artistString?.let { "$it ${track.title}" } ?: track.title
+    suspend fun getBestTrackMatch(trackCombo: ITrackCombo<*>, maxDistance: Int = 5): Track? {
+        val artistString = trackCombo.trackArtists.joined()
+        val query = artistString?.let { "$it ${trackCombo.track.title}" } ?: trackCombo.track.title
         val videos = getVideoSearchResult(query).videos
 
         return videos
-            .map {
-                it.matchTrack(
-                    track = track,
-                    albumArtists = albumArtists,
-                    trackArtists = trackArtists,
-                )
-            }
+            .map { it.toTrackCombo().matchTrack(trackCombo) }
             .filter { it.distance <= maxDistance }
             .minByOrNull { it.distance }
-            ?.let { ensureTrackMetadataOrNull(track.copy(youtubeVideo = it.video)) }
+            ?.let { ensureTrackMetadataOrNull(trackCombo.track.copy(youtubeVideo = it.trackCombo.externalData)) }
     }
 
 

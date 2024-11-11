@@ -17,9 +17,8 @@ import us.huseli.fistopy.Request
 import us.huseli.fistopy.dataclasses.CoverArtArchiveImage
 import us.huseli.fistopy.dataclasses.CoverArtArchiveResponse
 import us.huseli.fistopy.dataclasses.album.AlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.IAlbum
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.withUpdates
 import us.huseli.fistopy.dataclasses.artist.Artist
@@ -33,7 +32,9 @@ import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseGroup
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseGroupBrowse
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseGroupSearch
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseSearch
+import us.huseli.fistopy.dataclasses.track.ExternalTrackCombo
 import us.huseli.fistopy.enums.ListUpdateStrategy
+import us.huseli.fistopy.enums.TrackMergeStrategy
 import us.huseli.fistopy.externalcontent.SearchParams
 import us.huseli.fistopy.interfaces.ILogger
 import javax.inject.Inject
@@ -134,7 +135,7 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
     }
 
     suspend fun matchAlbumWithTracks(
-        combo: IAlbumWithTracksCombo<IAlbum>,
+        combo: IAlbumWithTracksCombo<*, *>,
         maxDistance: Double = MAX_ALBUM_MATCH_DISTANCE,
         trackMergeStrategy: TrackMergeStrategy = TrackMergeStrategy.KEEP_LEAST,
         albumArtistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
@@ -180,7 +181,7 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
     }
 
     fun recordingSearchChannel(searchParams: SearchParams) =
-        Channel<MusicBrainzRecordingSearch.Recording>().also { channel ->
+        Channel<ExternalTrackCombo<MusicBrainzRecordingSearch.Recording>>().also { channel ->
             launchOnIOThread {
                 val params = mutableMapOf<String, String>()
                 var total: Int?
@@ -205,7 +206,7 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
 
                         total = response?.count
                         offset += 100
-                        response?.recordings?.forEach { channel.send(it) }
+                        response?.recordings?.forEach { channel.send(it.toTrackCombo()) }
                     } while (total != null && total > (offset + 1) * 100)
                 }
                 channel.close()
@@ -213,7 +214,7 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
         }
 
     fun releaseGroupSearchChannel(searchParams: SearchParams) =
-        Channel<MusicBrainzReleaseGroupSearch.ReleaseGroup>().also { channel ->
+        Channel<ExternalAlbumWithTracksCombo<MusicBrainzReleaseGroupSearch.ReleaseGroup>>().also { channel ->
             launchOnIOThread {
                 val params = mutableMapOf<String, String>()
 
@@ -238,7 +239,7 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
 
                         total = response?.count
                         offset += 100
-                        response?.releaseGroups?.forEach { channel.send(it) }
+                        response?.releaseGroups?.forEach { channel.send(it.toAlbumWithTracks()) }
                     } while (total != null && total > (offset + 1) * 100)
                 }
                 channel.close()
@@ -270,10 +271,10 @@ class MusicBrainzRepository @Inject constructor() : AbstractScopeHolder() {
     }
 
     fun updateAlbumComboFromRelease(
-        oldCombo: IAlbumWithTracksCombo<IAlbum>,
+        oldCombo: IAlbumWithTracksCombo<*, *>,
         release: MusicBrainzRelease,
     ): UnsavedAlbumWithTracksCombo {
-        val newCombo = release.toAlbumCombo(
+        val newCombo = release.toAlbumWithTracks(
             isLocal = oldCombo.album.isLocal,
             isInLibrary = oldCombo.album.isInLibrary,
         )

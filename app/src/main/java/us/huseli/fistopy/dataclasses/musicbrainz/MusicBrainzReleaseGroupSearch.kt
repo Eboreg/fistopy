@@ -1,11 +1,9 @@
 package us.huseli.fistopy.dataclasses.musicbrainz
 
 import com.google.gson.annotations.SerializedName
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.IExternalAlbumWithTracksProducer
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
-import us.huseli.fistopy.dataclasses.album.UnsavedAlbumCombo
-import us.huseli.fistopy.interfaces.IExternalAlbum
-import java.util.UUID
-import kotlin.time.Duration
 
 data class MusicBrainzReleaseGroupSearch(
     val count: Int,
@@ -15,7 +13,6 @@ data class MusicBrainzReleaseGroupSearch(
     data class ReleaseGroup(
         override val id: String,
         override val title: String,
-        val count: Int,
         @SerializedName("first-release-date")
         override val firstReleaseDate: String?,
         @SerializedName("primary-type")
@@ -25,46 +22,39 @@ data class MusicBrainzReleaseGroupSearch(
         val releases: List<Release>,
         @SerializedName("secondary-types")
         override val secondaryTypes: List<MusicBrainzReleaseGroupSecondaryType>?,
-    ) : AbstractMusicBrainzReleaseGroup(), IExternalAlbum {
+    ) : AbstractMusicBrainzReleaseGroup(), IExternalAlbumWithTracksProducer<ReleaseGroup> {
         data class Release(
             override val id: String,
-            val title: String,
             val status: MusicBrainzReleaseStatus? = null,
         ) : AbstractMusicBrainzItem()
-
-        override val artistName: String
-            get() = artistCredit.joined()
-        override val thumbnailUrl: String?
-            get() = null
-        override val trackCount: Int?
-            get() = null
-        override val duration: Duration?
-            get() = null
-        override val playCount: Int?
-            get() = null
 
         fun getPreferredReleaseId(): String? {
             return releases.firstOrNull { it.status == MusicBrainzReleaseStatus.OFFICIAL }?.id
                 ?: releases.firstOrNull()?.id
         }
 
-        override fun toAlbumCombo(
+        override fun toAlbumWithTracks(
             isLocal: Boolean,
             isInLibrary: Boolean,
-            albumId: String?,
-        ): UnsavedAlbumCombo {
+            albumId: String,
+        ): ExternalAlbumWithTracksCombo<ReleaseGroup> {
             val album = UnsavedAlbum(
                 title = title,
-                isInLibrary = isInLibrary,
-                isLocal = isLocal,
                 year = year,
                 musicBrainzReleaseGroupId = id,
-                albumId = albumId ?: UUID.randomUUID().toString(),
                 albumType = albumType,
+                isLocal = isLocal,
+                isInLibrary = isInLibrary,
+                albumId = albumId,
             )
-            val albumArtists = artistCredit.toNativeAlbumArtists(albumId = album.albumId)
 
-            return UnsavedAlbumCombo(album = album, artists = albumArtists)
+            return ExternalAlbumWithTracksCombo(
+                externalData = this,
+                album = album,
+                tags = emptyList(),
+                trackCombos = emptyList(),
+                artists = artistCredit.toNativeAlbumArtists(album.albumId),
+            )
         }
     }
 }

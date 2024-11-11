@@ -17,9 +17,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import us.huseli.retaintheme.extensions.join
-import us.huseli.retaintheme.extensions.md5
-import us.huseli.retaintheme.extensions.toHex
 import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.BuildConfig
 import us.huseli.fistopy.Constants.PREF_LASTFM_SCROBBLE
@@ -37,6 +34,9 @@ import us.huseli.fistopy.dataclasses.track.ITrackCombo
 import us.huseli.fistopy.fromJson
 import us.huseli.fistopy.getMutexCache
 import us.huseli.fistopy.interfaces.ILogger
+import us.huseli.retaintheme.extensions.join
+import us.huseli.retaintheme.extensions.md5
+import us.huseli.retaintheme.extensions.toHex
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -185,7 +185,7 @@ class LastFmRepository @Inject constructor(
 
     suspend fun listMusicBrainzReleaseIds(): List<String> = albumDao.listMusicBrainzReleaseIds()
 
-    fun sendNowPlaying(combo: ITrackCombo) {
+    fun sendNowPlaying(combo: ITrackCombo<*>) {
         launchOnIOThread {
             val sessionKey = _sessionKey.value
             val artistString = combo.artistString
@@ -212,7 +212,7 @@ class LastFmRepository @Inject constructor(
         }
     }
 
-    fun sendScrobble(combo: ITrackCombo, startTimestamp: Long) {
+    fun sendScrobble(combo: ITrackCombo<*>, startTimestamp: Long) {
         val artistString = combo.artistString
 
         if (_scrobble.value && artistString != null) launchOnIOThread {

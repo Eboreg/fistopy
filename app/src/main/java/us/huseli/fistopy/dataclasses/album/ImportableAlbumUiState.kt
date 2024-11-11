@@ -11,8 +11,6 @@ data class ImportableAlbumUiState(
     override val fullImageUrl: String?,
     override val isInLibrary: Boolean,
     override val isLocal: Boolean,
-    override val isOnYoutube: Boolean,
-    override val isSaved: Boolean,
     override val musicBrainzReleaseGroupId: String?,
     override val musicBrainzReleaseId: String?,
     override val spotifyWebUrl: String?,
@@ -27,6 +25,7 @@ data class ImportableAlbumUiState(
     override val isPlayable: Boolean = false,
     override val isSelected: Boolean = false,
     val importError: String? = null,
+    val isImported: Boolean,
     val playCount: Int?,
 ) : IAlbumUiState {
     override fun withIsSelected(value: Boolean): ImportableAlbumUiState = copy(isSelected = value)

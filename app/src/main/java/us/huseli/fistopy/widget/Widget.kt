@@ -2,6 +2,7 @@ package us.huseli.fistopy.widget
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -38,7 +39,6 @@ import androidx.glance.text.TextStyle
 import us.huseli.fistopy.Logger
 import us.huseli.fistopy.MainActivity
 import us.huseli.fistopy.R
-import us.huseli.fistopy.getUmlautifiedString
 import us.huseli.fistopy.managers.WidgetManager
 
 @SuppressLint("RestrictedApi")
@@ -48,12 +48,15 @@ fun Widget(manager: WidgetManager) {
     val size = LocalSize.current
     val baseBackgroundColor = GlanceTheme.colors.background.getColor(context)
 
+    val albumArt by manager.albumArt.collectAsState()
     val albumArtAverageColor by manager.albumArtAverageColor.collectAsState()
-    val currentBitmap by manager.currentBitmap.collectAsState()
     val currentTrackString by manager.currentTrackString.collectAsState()
-
     val backgroundColor = remember(albumArtAverageColor) {
         albumArtAverageColor?.compositeOver(baseBackgroundColor) ?: baseBackgroundColor
+    }
+
+    LaunchedEffect(size) {
+        manager.setWidgetSize(size)
     }
 
     Logger.log("Widget", "size=$size")
@@ -63,7 +66,6 @@ fun Widget(manager: WidgetManager) {
             .fillMaxSize()
             .appWidgetBackground()
             .background(backgroundColor)
-            .cornerRadius(5.dp)
             .clickable(actionStartActivity<MainActivity>())
     ) {
         Row(modifier = GlanceModifier.fillMaxSize().padding(8.dp)) {
@@ -75,7 +77,7 @@ fun Widget(manager: WidgetManager) {
                     .cornerRadius(4.dp)
             ) {
                 Image(
-                    provider = currentBitmap?.let { ImageProvider(it) } ?: ImageProvider(R.drawable.splashscreen_icon),
+                    provider = albumArt,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = GlanceModifier.size(size.height - 20.dp).cornerRadius(2.dp),
@@ -93,7 +95,7 @@ fun Widget(manager: WidgetManager) {
                     modifier = GlanceModifier.defaultWeight().fillMaxWidth(),
                 ) {
                     Text(
-                        text = (currentTrackString ?: context.getUmlautifiedString(R.string.no_track_playing)),
+                        text = currentTrackString,
                         style = TextStyle(
                             color = GlanceTheme.colors.onBackground,
                             textAlign = TextAlign.Center,

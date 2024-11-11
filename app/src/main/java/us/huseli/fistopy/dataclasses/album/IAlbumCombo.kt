@@ -7,14 +7,13 @@ import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
 import us.huseli.fistopy.interfaces.IStringIdItem
 
-interface IAlbumCombo<out A : IAlbum> : IStringIdItem {
+interface IAlbumCombo<A : IAlbum> : IStringIdItem {
     val album: A
     val artists: List<IAlbumArtistCredit>
     val minYear: Int?
     val maxYear: Int?
     val isPartiallyDownloaded: Boolean
     val unplayableTrackCount: Int
-    val isSaved: Boolean
     val isDownloadable: Boolean
 
     val artistNames: List<String>
@@ -40,39 +39,31 @@ interface IAlbumCombo<out A : IAlbum> : IStringIdItem {
     override val id: String
         get() = album.albumId
 
-    fun getLevenshteinDistance(albumTitle: String, artistString: String?): Int {
+    fun getDistance(other: IAlbumCombo<*>): Double {
         val levenshtein = LevenshteinDistance()
-        val distances = mutableListOf<Int>()
-        val ourArtistString = artists.joined()
+        val thisAlbumArtistString = artists.joined()?.lowercase()
+        val otherAlbumArtistString = other.artists.joined()?.lowercase()
+        val otherAlbumArtistNames = listOfNotNull(otherAlbumArtistString).plus(other.artistNames)
+        // Strip "[artist] - " from our album title, by other's artists:
+        val thisAlbum = album.let { album ->
+            var title = album.title
 
-        distances.add(levenshtein.apply(album.title.lowercase(), albumTitle.lowercase()))
-        if (ourArtistString != null) {
-            distances.add(
-                levenshtein.apply(
-                    "$ourArtistString - ${album.title}".lowercase(),
-                    albumTitle.lowercase(),
-                )
-            )
-            if (artistString != null) distances.add(
-                levenshtein.apply(
-                    "$ourArtistString - ${album.title}".lowercase(),
-                    "$artistString - $albumTitle".lowercase(),
-                )
-            )
+            for (artistName in otherAlbumArtistNames) {
+                title = title.replace(Regex("^$artistName( - *)?", RegexOption.IGNORE_CASE), "")
+            }
+            album.asUnsavedAlbum().copy(title = title)
         }
-        if (artistString != null)
-            distances.add(
-                levenshtein.apply(
-                    album.title.lowercase(),
-                    "$artistString - $albumTitle".lowercase(),
-                )
-            )
+        val albumDistance = thisAlbum.getDistance(other.album)
+        val artistDistance =
+            if (thisAlbumArtistString != null && otherAlbumArtistString != null)
+                levenshtein.apply(thisAlbumArtistString, otherAlbumArtistString)
+            else 0
 
-        return distances.min()
+        return (albumDistance + artistDistance) / 2.0
     }
 
-    fun toImportableUiState(playCount: Int? = null) =
-        album.toImportableUiState(playCount = playCount).copy(
+    fun toImportableUiState() =
+        album.toImportableUiState().copy(
             artistString = artists.joined(),
             artists = artists.toImmutableList(),
             isDownloadable = isDownloadable,
@@ -89,16 +80,11 @@ interface IAlbumCombo<out A : IAlbum> : IStringIdItem {
     )
 }
 
-interface IUnsavedAlbumCombo : IAlbumCombo<IAlbum> {
-    override val isSaved: Boolean
-        get() = false
-}
+interface IUnsavedAlbumCombo : IAlbumCombo<UnsavedAlbum>
 
 interface ISavedAlbumCombo : IAlbumCombo<Album> {
     override val album: Album
     override val artists: List<AlbumArtistCredit>
-    override val isSaved: Boolean
-        get() = true
 }
 
 fun Iterable<IAlbumCombo<*>>.toUiStates() = map { it.toUiState() }.toImmutableList()

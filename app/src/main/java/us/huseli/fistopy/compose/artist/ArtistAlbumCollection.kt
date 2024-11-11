@@ -36,10 +36,10 @@ import us.huseli.fistopy.compose.scrollbar.ScrollbarList
 import us.huseli.fistopy.compose.utils.IsLoadingProgressIndicator
 import us.huseli.fistopy.dataclasses.album.AlbumSelectionCallbacks
 import us.huseli.fistopy.dataclasses.album.AlbumUiState
+import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.artist.UnsavedArtist
 import us.huseli.fistopy.enums.AlbumType
 import us.huseli.fistopy.getUmlautifiedString
-import us.huseli.fistopy.interfaces.IExternalAlbum
 import us.huseli.fistopy.stringResource
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -52,8 +52,8 @@ fun ArtistAlbumCollection(
     selectedAlbumCount: () -> Int,
     downloadStateFlow: (String) -> StateFlow<AlbumDownloadTask.UiState?>,
     relatedArtists: ImmutableList<UnsavedArtist>,
-    otherAlbums: ImmutableList<IExternalAlbum>,
-    otherAlbumsPreview: ImmutableList<IExternalAlbum>,
+    otherAlbums: ImmutableList<IAlbum>,
+    otherAlbumsPreview: ImmutableList<IAlbum>,
     otherAlbumTypes: ImmutableList<AlbumType>,
     onClick: (AlbumUiState) -> Unit,
     onLongClick: (AlbumUiState) -> Unit,

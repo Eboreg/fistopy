@@ -15,30 +15,34 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import us.huseli.retaintheme.extensions.combineEquals
-import us.huseli.retaintheme.extensions.filterValuesNotNull
-import us.huseli.retaintheme.extensions.mostCommonValue
-import us.huseli.retaintheme.extensions.nullIfEmpty
 import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.R
 import us.huseli.fistopy.copyFrom
 import us.huseli.fistopy.copyTo
 import us.huseli.fistopy.dataclasses.ID3Data
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.IAlbum
-import us.huseli.fistopy.dataclasses.album.LocalImportableAlbum
+import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
 import us.huseli.fistopy.dataclasses.artist.ArtistTitlePair
 import us.huseli.fistopy.dataclasses.artist.IArtistCredit
+import us.huseli.fistopy.dataclasses.artist.UnsavedAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.extractID3Data
+import us.huseli.fistopy.dataclasses.toMediaStoreImage
+import us.huseli.fistopy.dataclasses.track.LocalImportableTrack
 import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.track.extractTrackMetadata
+import us.huseli.fistopy.enums.AlbumType
 import us.huseli.fistopy.escapeQuotes
 import us.huseli.fistopy.interfaces.ILogger
+import us.huseli.retaintheme.extensions.combineEquals
+import us.huseli.retaintheme.extensions.filterValuesNotNull
+import us.huseli.retaintheme.extensions.mostCommonValue
+import us.huseli.retaintheme.extensions.nullIfEmpty
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class LocalMediaRepository @Inject constructor(@ApplicationContext private val context: Context) : ILogger, AbstractScopeHolder() {
@@ -103,9 +107,9 @@ class LocalMediaRepository @Inject constructor(@ApplicationContext private val c
     private suspend fun getImportableAlbums(
         treeDocumentFile: DocumentFile,
         existingTrackUris: Collection<Uri>,
-        channel: Channel<LocalImportableAlbum>,
+        channel: Channel<ExternalAlbumWithTracksCombo<UnsavedAlbum>>,
     ) {
-        val tracks = mutableListOf<LocalImportableAlbum.LocalImportableTrack>()
+        val tracks = mutableListOf<LocalImportableTrack>()
         val pathData = ArtistTitlePair.fromDirectory(treeDocumentFile)
         val imageFiles = mutableListOf<DocumentFile>()
 
@@ -140,7 +144,7 @@ class LocalMediaRepository @Inject constructor(@ApplicationContext private val c
                                 ?: listOf(null, null)
 
                         tracks.add(
-                            LocalImportableAlbum.LocalImportableTrack(
+                            LocalImportableTrack(
                                 title = id3.title ?: filenameTitle ?: context.getString(R.string.unknown_title),
                                 albumPosition = id3.trackNumber ?: filenameAlbumPosition?.toIntOrNull(),
                                 metadata = metadata,
@@ -175,17 +179,30 @@ class LocalMediaRepository @Inject constructor(@ApplicationContext private val c
             val albumArtist = albumTracks.mapNotNull { it.id3.albumArtist }.mostCommonValue()
                 ?: albumTracks.mapNotNull { it.id3.artist }.mostCommonValue()
                 ?: pathData.artist
+            val albumId = UUID.randomUUID().toString()
+            val album = UnsavedAlbum(
+                albumArt = coverImage?.uri?.toMediaStoreImage(),
+                albumId = albumId,
+                albumType = if (albumArtist?.lowercase() == "various artists") AlbumType.COMPILATION else null,
+                title = albumTitle,
+                musicBrainzReleaseId = albumTracks.firstNotNullOfOrNull { it.id3.musicBrainzReleaseId },
+                musicBrainzReleaseGroupId = albumTracks.firstNotNullOfOrNull { it.id3.musicBrainzReleaseGroupId },
+                year = albumTracks.mapNotNull { it.id3.year }.toSet().takeIf { it.size == 1 }?.first(),
+                trackCount = albumTracks.size,
+                isLocal = true,
+            )
+            val albumArtists = albumArtist
+                ?.takeIf { it.lowercase() != "various artists" }
+                ?.let { listOf(UnsavedAlbumArtistCredit(name = it, albumId = albumId)) }
+                ?: emptyList()
 
             channel.send(
-                LocalImportableAlbum(
-                    title = albumTitle,
-                    artistName = albumArtist,
-                    year = albumTracks.mapNotNull { it.id3.year }.toSet().takeIf { it.size == 1 }?.first(),
-                    musicBrainzReleaseId = albumTracks.map { it.id3.musicBrainzReleaseId }.firstOrNull(),
-                    musicBrainzReleaseGroupId = albumTracks.firstNotNullOfOrNull { it.id3.musicBrainzReleaseGroupId },
-                    tracks = albumTracks,
-                    duration = albumTracks.sumOf { it.metadata.durationMs }.milliseconds,
-                    thumbnailUrl = coverImage?.uri?.toString(),
+                ExternalAlbumWithTracksCombo(
+                    album = album,
+                    artists = albumArtists,
+                    tags = emptyList(),
+                    trackCombos = albumTracks.map { it.toTrackCombo(album = album, albumArtists = albumArtists) },
+                    externalData = album,
                 )
             )
         }
@@ -194,7 +211,7 @@ class LocalMediaRepository @Inject constructor(@ApplicationContext private val c
     fun importableAlbumsChannel(
         treeDocumentFile: DocumentFile,
         existingTrackUris: Collection<Uri>,
-    ): Channel<LocalImportableAlbum> = Channel<LocalImportableAlbum>().also { channel ->
+    ) = Channel<ExternalAlbumWithTracksCombo<UnsavedAlbum>>().also { channel ->
         launchOnIOThread {
             getImportableAlbums(
                 treeDocumentFile = treeDocumentFile,

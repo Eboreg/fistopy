@@ -30,68 +30,11 @@ data class Album(
     @ColumnInfo("Album_trackCount") override val trackCount: Int? = null,
     @Embedded("Album_youtubePlaylist_") override val youtubePlaylist: YoutubePlaylist? = null,
     @Embedded("Album_albumArt_") override val albumArt: MediaStoreImage? = null,
-    @Embedded("Album_spotifyImage_") override val spotifyImage: MediaStoreImage? = null,
 ) : Parcelable, IAlbum {
     override val isSaved: Boolean
         get() = true
 
     override fun asSavedAlbum() = this
 
-    override fun asUnsavedAlbum(): UnsavedAlbum = UnsavedAlbum(
-        albumId = albumId,
-        isInLibrary = isInLibrary,
-        isLocal = isLocal,
-        title = title,
-        albumArt = albumArt,
-        albumType = albumType,
-        isHidden = isHidden,
-        musicBrainzReleaseGroupId = musicBrainzReleaseGroupId,
-        musicBrainzReleaseId = musicBrainzReleaseId,
-        spotifyId = spotifyId,
-        spotifyImage = spotifyImage,
-        trackCount = trackCount,
-        year = year,
-        youtubePlaylist = youtubePlaylist,
-    )
-
     override fun toString(): String = title
-}
-
-data class UnsavedAlbum(
-    override val albumId: String,
-    override val isInLibrary: Boolean,
-    override val isLocal: Boolean,
-    override val title: String,
-    override val albumArt: MediaStoreImage? = null,
-    override val albumType: AlbumType? = null,
-    override val isHidden: Boolean = false,
-    override val musicBrainzReleaseGroupId: String? = null,
-    override val musicBrainzReleaseId: String? = null,
-    override val spotifyId: String? = null,
-    override val spotifyImage: MediaStoreImage? = null,
-    override val trackCount: Int? = null,
-    override val year: Int? = null,
-    override val youtubePlaylist: YoutubePlaylist? = null,
-) : IAlbum {
-    override val isSaved: Boolean
-        get() = false
-
-    override fun asSavedAlbum() = Album(
-        albumArt = albumArt,
-        albumId = albumId,
-        albumType = albumType,
-        isHidden = isHidden,
-        isInLibrary = isInLibrary,
-        isLocal = isLocal,
-        musicBrainzReleaseGroupId = musicBrainzReleaseGroupId,
-        musicBrainzReleaseId = musicBrainzReleaseId,
-        spotifyId = spotifyId,
-        spotifyImage = spotifyImage,
-        title = title,
-        trackCount = trackCount,
-        year = year,
-        youtubePlaylist = youtubePlaylist,
-    )
-
-    override fun asUnsavedAlbum(): UnsavedAlbum = this
 }

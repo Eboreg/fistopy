@@ -22,5 +22,3 @@ interface IArtist {
 interface ISavedArtist {
     val artistId: String
 }
-
-fun Iterable<IArtist>.names() = map { it.name }

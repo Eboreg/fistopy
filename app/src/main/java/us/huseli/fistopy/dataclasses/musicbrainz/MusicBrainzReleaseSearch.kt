@@ -1,9 +1,7 @@
 package us.huseli.fistopy.dataclasses.musicbrainz
 
 import com.google.gson.annotations.SerializedName
-import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
 import us.huseli.fistopy.enums.AlbumType
-import kotlin.time.Duration
 
 data class MusicBrainzReleaseSearch(
     val count: Int,
@@ -16,8 +14,6 @@ data class MusicBrainzReleaseSearch(
         override val country: String?,
         override val date: String?,
         override val id: String,
-        val media: List<MusicBrainzSimplifiedMedia>,
-        val packaging: String?,
         @SerializedName("release-group")
         val releaseGroup: ReleaseGroup,
         override val status: MusicBrainzReleaseStatus?,
@@ -29,18 +25,10 @@ data class MusicBrainzReleaseSearch(
             override val id: String,
             @SerializedName("primary-type")
             val primaryType: MusicBrainzReleaseGroupPrimaryType?,
-            @SerializedName("primary-type-id")
-            val primaryTypeId: String?,
-            val title: String,
-            @SerializedName("type-id")
-            val typeId: String?,
         ) : AbstractMusicBrainzItem()
 
-        override val albumType: AlbumType?
-            get() = super.albumType ?: releaseGroup.primaryType?.albumType
-
-        override val releaseGroupId: String
-            get() = releaseGroup.id
+        override val albumType: AlbumType? = super.albumType ?: releaseGroup.primaryType?.albumType
+        override val releaseGroupId: String = releaseGroup.id
 
         fun matches(artist: String?, album: String): Boolean {
             val artistCredits = artistCredit.joined()
@@ -51,11 +39,5 @@ data class MusicBrainzReleaseSearch(
 
             return albumMatch && artistMatch
         }
-
-        override fun toAlbum(isLocal: Boolean, isInLibrary: Boolean, albumId: String?): UnsavedAlbum =
-            super.toAlbum(isLocal, isInLibrary, albumId).copy(musicBrainzReleaseGroupId = releaseGroup.id)
-
-        override val duration: Duration?
-            get() = null
     }
 }

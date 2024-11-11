@@ -2,7 +2,6 @@ package us.huseli.fistopy
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.media.MediaFormat
 import android.net.Uri
 import androidx.annotation.WorkerThread
@@ -15,9 +14,10 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmapOrNull
 import androidx.documentfile.provider.DocumentFile
-import com.anggrayudi.storage.extension.openInputStream
+import coil.imageLoader
+import coil.request.ImageRequest
 import com.anggrayudi.storage.file.fullName
 import com.anggrayudi.storage.file.isWritable
 import com.anggrayudi.storage.file.mimeType
@@ -27,11 +27,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import us.huseli.fistopy.Constants.IMAGE_FULL_MAX_WIDTH_DP
-import us.huseli.fistopy.Constants.IMAGE_THUMBNAIL_MAX_WIDTH_DP
 import us.huseli.fistopy.dataclasses.artist.IArtist
 import us.huseli.fistopy.dataclasses.artist.IArtistCredit
 import us.huseli.fistopy.dataclasses.artist.ISavedArtist
@@ -39,13 +35,8 @@ import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.retaintheme.extensions.formattedString
 import us.huseli.retaintheme.extensions.nullIfEmpty
 import us.huseli.retaintheme.extensions.pow
-import us.huseli.retaintheme.extensions.scaleToMaxSize
-import us.huseli.retaintheme.extensions.square
-import us.huseli.retaintheme.extensions.toBitmap
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileNotFoundException
-import java.io.IOException
 import java.util.Locale
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -106,9 +97,6 @@ fun <T> Map<*, *>.yquery(keys: String, failSilently: Boolean = true): T? {
     }
     return null
 }
-
-val Context.imageCacheDir: File
-    get() = File(cacheDir, "images").apply { mkdirs() }
 
 fun <T> List<T>.offset(offset: Int): List<T> {
     val startIdx =
@@ -325,8 +313,8 @@ fun ImageBitmap.getAverageColor(): Color {
     var redSum = 0f
     var greenSum = 0f
     var blueSum = 0f
-    val stepX = max((1f / (100f / pixelMap.width)).roundToInt(), 1)
-    val stepY = max((1f / (100f / pixelMap.height)).roundToInt(), 1)
+    val stepX = (pixelMap.width / 100f).roundToInt().coerceAtLeast(1)
+    val stepY = (pixelMap.height / 100f).roundToInt().coerceAtLeast(1)
     var sampleCount = 0
 
     for (x in 0 until pixelMap.width step stepX) {
@@ -350,51 +338,23 @@ fun ImageBitmap.getAverageColor(): Color {
 fun Bitmap.getSquareSize() = min(width, height).pow(2)
 
 
+/** CONTEXT ***********************************************************************************************************/
+
+suspend fun Context.getBitmap(model: Any, size: Int? = null): Bitmap? {
+    val builder = ImageRequest.Builder(this).data(model)
+    if (size != null) builder.size(size)
+
+    return imageLoader.execute(builder.build()).drawable?.toBitmapOrNull()
+}
+
+
 /** URI ***************************************************************************************************************/
 
 fun Uri.getRelativePath(): String? = lastPathSegment?.substringAfterLast(':')?.nullIfEmpty()
 
-suspend fun Uri.getBitmap(context: Context? = null): Bitmap? = withContext(Dispatchers.IO) {
-    try {
-        if (this@getBitmap.isRemote) {
-            Request(this@getBitmap.toString()).getBitmap()
-        } else if (context != null) {
-            this@getBitmap.openInputStream(context)?.use { BitmapFactory.decodeStream(it) }
-        } else {
-            path?.let { FileInputStream(File(it)) }?.use { BitmapFactory.decodeStream(it) }
-        }
-    } catch (e: HTTPResponseError) {
-        Logger.logError("Uri", "getBitmap: $e", e)
-        null
-    } catch (e: IOException) {
-        Logger.logError("Uri", "getBitmap: $e", e)
-        null
-    }
-}
-
 val Uri.isRemote: Boolean
     // Very primitive and incomplete check, but should be good enough for us.
     get() = scheme?.matches(Regex("^(https?)|(ftps?)$", RegexOption.IGNORE_CASE)) == true
-
-private suspend fun Uri.getBitmap(context: Context, thumbnail: Boolean, saveToCache: Boolean): Bitmap? {
-    val size = if (thumbnail) IMAGE_THUMBNAIL_MAX_WIDTH_DP.dp else IMAGE_FULL_MAX_WIDTH_DP.dp
-    val cacheFilename = hashCode().toString() + (if (thumbnail) "-thumbnail.jpg" else "-full.jpg")
-    val cacheFile = File(context.imageCacheDir, cacheFilename)
-
-    if (isRemote && cacheFile.exists()) {
-        cacheFile.toBitmap()?.also { return it }
-        cacheFile.delete()
-    }
-
-    return getBitmap(context)?.square()?.scaleToMaxSize(size, context)?.also { bitmap ->
-        if (saveToCache && isRemote) cacheFile.outputStream().use { outputStream ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
-        }
-    }
-}
-
-suspend fun Uri.getFullBitmap(context: Context, saveToCache: Boolean): Bitmap? =
-    getBitmap(context, false, saveToCache)
 
 
 /** DOCUMENTFILE ******************************************************************************************************/

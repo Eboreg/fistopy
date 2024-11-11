@@ -24,13 +24,11 @@ data class ModalCoverTrackUiState(
     override val youtubeWebUrl: String?,
     val durationMs: Long,
 ) : AbstractTrackUiState() {
-    override val isSelected: Boolean
-        get() = false
     override val trackId: String
         get() = id
 
     companion object {
-        fun fromTrackCombo(combo: ITrackCombo) = ModalCoverTrackUiState(
+        fun fromTrackCombo(combo: ITrackCombo<*>) = ModalCoverTrackUiState(
             albumId = combo.track.albumId,
             albumTitle = combo.album?.title,
             artistString = combo.artistString,

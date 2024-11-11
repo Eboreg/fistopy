@@ -15,10 +15,11 @@ import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.R
 import us.huseli.fistopy.database.Database
 import us.huseli.fistopy.dataclasses.ProgressData
-import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.ImportableAlbumUiState
-import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
+import us.huseli.fistopy.dataclasses.album.withUpdates
+import us.huseli.fistopy.dataclasses.youtube.stripTitleCommons
+import us.huseli.fistopy.enums.TrackMergeStrategy
 import us.huseli.fistopy.externalcontent.IExternalSearchBackend
 import us.huseli.fistopy.externalcontent.ImportBackend
 import us.huseli.fistopy.externalcontent.LastFmBackend
@@ -29,7 +30,6 @@ import us.huseli.fistopy.externalcontent.SpotifyBackend
 import us.huseli.fistopy.externalcontent.YoutubeBackend
 import us.huseli.fistopy.externalcontent.holders.AbstractAlbumImportHolder
 import us.huseli.fistopy.getUmlautifiedString
-import us.huseli.fistopy.interfaces.IExternalAlbum
 import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.fistopy.repositories.Repositories
 import javax.inject.Inject
@@ -48,7 +48,7 @@ class ExternalContentManager @Inject constructor(
         val state: ImportableAlbumUiState,
         val matchYoutube: Boolean,
         val isFinished: Boolean = false,
-        val holder: AbstractAlbumImportHolder<out IExternalAlbum>,
+        val holder: AbstractAlbumImportHolder<*>,
         var id: String = state.id,
         val error: String? = null,
     ) {
@@ -133,7 +133,7 @@ class ExternalContentManager @Inject constructor(
 
     fun enqueueAlbumImport(
         state: ImportableAlbumUiState,
-        holder: AbstractAlbumImportHolder<out IExternalAlbum>,
+        holder: AbstractAlbumImportHolder<*>,
         matchYoutube: Boolean = true,
     ) {
         albumImportQueue.value = albumImportQueue.value.plus(
@@ -147,7 +147,7 @@ class ExternalContentManager @Inject constructor(
         ImportBackend.LAST_FM -> backends.lastFm
     }
 
-    fun getSearchBackend(key: SearchBackend): IExternalSearchBackend<out IExternalAlbum> = when (key) {
+    fun getSearchBackend(key: SearchBackend): IExternalSearchBackend = when (key) {
         SearchBackend.YOUTUBE -> backends.youtube
         SearchBackend.SPOTIFY -> backends.spotify
         SearchBackend.MUSICBRAINZ -> backends.musicBrainz
@@ -158,8 +158,8 @@ class ExternalContentManager @Inject constructor(
 
     /** PRIVATE METHODS ***********************************************************************************************/
 
-    private suspend fun convertStateToAlbumWithTracks(data: AlbumImportData): IAlbumWithTracksCombo<IAlbum>? {
-        val matchedCombo = data.holder.convertToAlbumWithTracks(data.state)
+    private suspend fun convertStateToAlbumWithTracks(data: AlbumImportData): IAlbumWithTracksCombo<*, *>? {
+        val matchedCombo = data.holder.getAlbumWithTracks(data.id)
 
         if (!data.matchYoutube) return matchedCombo
         if (matchedCombo == null) return null
@@ -170,7 +170,7 @@ class ExternalContentManager @Inject constructor(
         ) ?: return null
 
         // If imported & converted album already exists, use that instead:
-        repos.album.getAlbumWithTracksByYoutubePlaylistId(youtubeMatch.playlistId)?.let { combo ->
+        repos.album.getAlbumWithTracksByYoutubePlaylistId(youtubeMatch.albumCombo.externalData.id)?.let { combo ->
             combo.copy(
                 album = combo.album.copy(isInLibrary = true, isHidden = false),
                 trackCombos = combo.trackCombos.map { trackCombo ->
@@ -183,7 +183,14 @@ class ExternalContentManager @Inject constructor(
             return it
         }
 
-        return youtubeMatch.albumCombo
+        return matchedCombo.withUpdates {
+            updateAlbum { it.copy(youtubePlaylist = youtubeMatch.albumCombo.externalData.playlist) }
+            updateTracks { tracks ->
+                tracks
+                    .zip(youtubeMatch.albumCombo.externalData.videos.stripTitleCommons())
+                    .map { (track, video) -> track.copy(youtubeVideo = video) }
+            }
+        }
     }
 
     private suspend fun importAlbum(data: AlbumImportData) {
@@ -222,7 +229,7 @@ class ExternalContentManager @Inject constructor(
         }
     }
 
-    private fun updateAlbumComboFromRemotes(combo: IAlbumWithTracksCombo<IAlbum>) = launchOnIOThread {
+    private fun updateAlbumComboFromRemotes(combo: IAlbumWithTracksCombo<*, *>) = launchOnIOThread {
         val spotifyCombo = if (combo.album.spotifyId == null) repos.spotify.matchAlbumWithTracks(
             combo = combo,
             trackMergeStrategy = TrackMergeStrategy.KEEP_SELF,
@@ -237,7 +244,7 @@ class ExternalContentManager @Inject constructor(
         upsertAlbumWithTracks(mbCombo ?: spotifyCombo ?: combo)
     }
 
-    private suspend fun upsertAlbumWithTracks(combo: IAlbumWithTracksCombo<IAlbum>) {
+    private suspend fun upsertAlbumWithTracks(combo: IAlbumWithTracksCombo<*, *>) {
         database.withTransaction {
             repos.album.upsertAlbum(combo.album)
             repos.album.setAlbumTags(combo.album.albumId, combo.tags)

@@ -1,71 +1,46 @@
 package us.huseli.fistopy.dataclasses.lastfm
 
 import com.google.gson.annotations.SerializedName
-import us.huseli.fistopy.dataclasses.MediaStoreImage
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.IExternalAlbumWithTracksProducer
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
-import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
 import us.huseli.fistopy.enums.AlbumType
-import us.huseli.fistopy.interfaces.IExternalAlbumWithTracks
-import java.util.UUID
-import kotlin.time.Duration
+import us.huseli.fistopy.interfaces.IStringIdItem
 
 data class LastFmAlbum(
     val mbid: String,
-    val url: String,
     val name: String,
     val artist: LastFmArtist,
     val image: List<LastFmImage>,
-    @SerializedName("playcount") val playCountString: String?,
-) : IExternalAlbumWithTracks {
-    override val albumType: AlbumType?
-        get() = if (artist.name.lowercase() == "various artists") AlbumType.COMPILATION else null
-
-    override val artistName: String
-        get() = artist.name
-
-    override val duration: Duration?
-        get() = null
-
+    @SerializedName("playcount") val playCount: String?,
+) : IExternalAlbumWithTracksProducer<LastFmAlbum>, IStringIdItem {
     override val id: String
         get() = mbid
-
-    override val playCount: Int?
-        get() = playCountString?.toInt()
-
-    override val thumbnailUrl: String?
-        get() = image.getThumbnail()?.url
-
-    override val title: String
-        get() = name
-
-    override val trackCount: Int?
-        get() = null
-
-    override val year: Int?
-        get() = null
-
-    override fun getMediaStoreImage(): MediaStoreImage? = image.toMediaStoreImage()
 
     override fun toAlbumWithTracks(
         isLocal: Boolean,
         isInLibrary: Boolean,
-        albumId: String?,
-    ): UnsavedAlbumWithTracksCombo {
+        albumId: String,
+    ): ExternalAlbumWithTracksCombo<LastFmAlbum> {
         val album = UnsavedAlbum(
-            albumArt = getMediaStoreImage(),
-            albumId = albumId ?: UUID.randomUUID().toString(),
-            albumType = albumType,
-            isInLibrary = isInLibrary,
-            isLocal = isLocal,
+            albumArt = image.toMediaStoreImage(),
+            albumType = if (artist.name.lowercase() == "various artists") AlbumType.COMPILATION else null,
             musicBrainzReleaseId = mbid,
-            title = title,
+            title = name,
+            isLocal = isLocal,
+            isInLibrary = isInLibrary,
+            albumId = albumId,
         )
 
-        return UnsavedAlbumWithTracksCombo(
+        return ExternalAlbumWithTracksCombo(
             album = album,
-            artists = listOf(artist.toNativeAlbumArtist(albumId = album.albumId)),
+            artists = listOf(artist.toNativeAlbumArtist(album.albumId)),
+            tags = emptyList(),
+            trackCombos = emptyList(),
+            externalData = this,
+            playCount = playCount?.toInt(),
         )
     }
 
-    override fun toString(): String = artistName.takeIf { it.isNotEmpty() }?.let { "$it - $title" } ?: title
+    override fun toString(): String = artist.name.takeIf { it.isNotEmpty() }?.let { "$it - $name" } ?: name
 }

@@ -7,14 +7,14 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import us.huseli.retaintheme.extensions.launchOnIOThread
-import us.huseli.retaintheme.extensions.sanitizeFilename
 import us.huseli.fistopy.R
 import us.huseli.fistopy.dataclasses.ProgressData
 import us.huseli.fistopy.dataclasses.track.TrackCombo
 import us.huseli.fistopy.dataclasses.track.toPlainTrackCombos
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnIOThread
+import us.huseli.retaintheme.extensions.sanitizeFilename
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -93,7 +93,7 @@ class ExportViewModel @Inject constructor(
 
     fun setPlaylistId(playlistId: String) {
         launchOnIOThread {
-            _title = repos.playlist.getPlaylist(playlistId)?.name
+            _title = repos.playlist.getPlaylistName(playlistId)
             _trackCombos.value = repos.playlist.listPlaylistTrackCombos(playlistId)
                 .toPlainTrackCombos()
                 .toImmutableList()

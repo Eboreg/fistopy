@@ -31,7 +31,7 @@ data class PlaylistTrackCombo(
     override val trackArtists: List<TrackArtistCredit>,
     @Relation(parentColumn = "Track_albumId", entityColumn = "AlbumArtist_albumId", entity = AlbumArtistCredit::class)
     override val albumArtists: List<AlbumArtistCredit> = emptyList(),
-) : ISavedTrackCombo {
+) : ISavedTrackCombo<PlaylistTrackCombo> {
     fun toPlainTrackCombo() = TrackCombo(
         track = track,
         album = album,

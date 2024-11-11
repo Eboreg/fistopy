@@ -16,7 +16,6 @@ abstract class AbstractTrackUiState : IStringIdItem, IAlbumArtOwner, IHasMusicBr
     abstract val isDownloadable: Boolean
     abstract val isInLibrary: Boolean
     abstract val isPlayable: Boolean
-    abstract val isSelected: Boolean
     abstract override val musicBrainzReleaseGroupId: String?
     abstract override val musicBrainzReleaseId: String?
     abstract val spotifyId: String?

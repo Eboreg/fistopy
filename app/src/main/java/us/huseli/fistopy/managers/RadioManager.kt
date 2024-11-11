@@ -4,6 +4,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.combineTransform
@@ -32,13 +33,13 @@ class RadioManager @Inject constructor(
     private var worker: RadioTrackChannel? = null
 
     private val radioDao = database.radioDao()
-    private val radioStatus = MutableStateFlow(RadioStatus.INACTIVE)
+    private val _radioStatus = MutableStateFlow(RadioStatus.INACTIVE)
 
     val activeRadioCombo: Flow<RadioCombo?> = radioDao.flowActiveRadio()
-        .distinctUntilChanged()
         .filter { it == null || it.type == RadioType.LIBRARY || it.title != null }
         .distinctUntilChanged()
-    val radioUiState: Flow<RadioUiState?> = combine(activeRadioCombo, radioStatus) { radio, status ->
+    val radioStatus = _radioStatus.asStateFlow()
+    val radioUiState: Flow<RadioUiState?> = combine(activeRadioCombo, _radioStatus) { radio, status ->
         if (status != RadioStatus.INACTIVE) radio?.let { RadioUiState(type = it.type, title = it.title) } else null
     }
 
@@ -60,7 +61,7 @@ class RadioManager @Inject constructor(
         worker = null
         radioJob?.cancel()
         radioJob = null
-        radioStatus.value = RadioStatus.INACTIVE
+        _radioStatus.value = RadioStatus.INACTIVE
         launchOnIOThread { radioDao.clearRadios() }
     }
 
@@ -99,7 +100,7 @@ class RadioManager @Inject constructor(
         var firstTrack = true
 
         this.worker = worker
-        radioStatus.value = RadioStatus.LOADING
+        _radioStatus.value = RadioStatus.LOADING
 
         try {
             if (!radio.isInitialized) {
@@ -110,9 +111,9 @@ class RadioManager @Inject constructor(
 
             combineTransform(repos.player.trackCount, repos.player.tracksLeft) { trackCount, tracksLeft ->
                 if (trackCount < 20 || tracksLeft < 5) {
-                    if (radioStatus.value == RadioStatus.LOADED) radioStatus.value = RadioStatus.LOADING_MORE
+                    if (_radioStatus.value == RadioStatus.LOADED) _radioStatus.value = RadioStatus.LOADING_MORE
                     emit(true)
-                } else radioStatus.value = RadioStatus.LOADED
+                } else _radioStatus.value = RadioStatus.LOADED
             }.collectLatest {
                 handleNextRadioTrack(worker = worker)
                 firstTrack = false

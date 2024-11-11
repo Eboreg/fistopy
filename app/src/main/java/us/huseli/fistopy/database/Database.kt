@@ -56,7 +56,7 @@ import java.util.concurrent.Executors
         ArtistCombo::class,
     ],
     exportSchema = false,
-    version = 126,
+    version = 127,
 )
 @TypeConverters(Converters::class)
 abstract class Database : RoomDatabase() {

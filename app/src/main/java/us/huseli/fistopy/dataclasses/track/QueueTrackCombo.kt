@@ -7,6 +7,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.room.ColumnInfo
 import androidx.room.DatabaseView
 import androidx.room.Embedded
+import androidx.room.Ignore
 import androidx.room.Relation
 import us.huseli.fistopy.dataclasses.album.Album
 import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
@@ -40,19 +41,26 @@ data class QueueTrackCombo(
     override val trackArtists: List<TrackArtistCredit>,
     @Relation(parentColumn = "Track_albumId", entityColumn = "AlbumArtist_albumId", entity = AlbumArtistCredit::class)
     override val albumArtists: List<AlbumArtistCredit> = emptyList(),
-) : ISavedTrackCombo, ILogger {
+) : ISavedTrackCombo<QueueTrackCombo>, ILogger {
     val metadataRefreshNeeded: Boolean
         get() = track.youtubeVideo?.metadataRefreshNeeded == true
 
     val queueTrack: QueueTrack
         get() = QueueTrack(queueTrackId = queueTrackId, trackId = track.trackId, position = position)
 
-    fun toMediaItem(): MediaItem = MediaItem.Builder()
+    @Ignore
+    val mediaItem = MediaItem.Builder()
         .setMediaId(queueTrackId)
         .setUri(uri)
         .setMediaMetadata(getMediaMetadata())
         .setTag(this)
         .build()
+
+    fun hasSameTrack(other: QueueTrackCombo?) = other != null &&
+        other.track.trackId == track.trackId &&
+        other.queueTrackId == queueTrackId &&
+        other.uri == uri &&
+        other.position == position
 
     override fun toUiState(isSelected: Boolean): TrackUiState =
         super.toUiState(isSelected = isSelected).copy(id = queueTrackId)

@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.glance.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.fistopy.R
@@ -41,7 +42,8 @@ fun EditAlbumCoverDialog(
     modifier: Modifier = Modifier,
     viewModel: EditAlbumViewModel = hiltViewModel(),
 ) {
-    val albumArts by viewModel.flowAlbumArt(albumId).collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val albumArts by viewModel.flowAlbumArt(albumId, context).collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoadingAlbumArt.collectAsStateWithLifecycle()
     val close: () -> Unit = remember {
         {
@@ -50,7 +52,12 @@ fun EditAlbumCoverDialog(
         }
     }
     val selectFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) viewModel.saveAlbumArtFromUri(albumId = albumId, uri = uri, onSuccess = close)
+        if (uri != null) viewModel.saveAlbumArtFromUri(
+            albumId = albumId,
+            uri = uri,
+            onSuccess = close,
+            context = context,
+        )
     }
 
     AlertDialog(

@@ -8,7 +8,7 @@ data class LastFmImage(
     val size: Size,
     @SerializedName("#text") val url: String,
 ) {
-    @Suppress("unused")
+    @Suppress("unused", "IncorrectFormatting")
     enum class Size {
         @SerializedName("small") SMALL,
         @SerializedName("medium") MEDIUM,

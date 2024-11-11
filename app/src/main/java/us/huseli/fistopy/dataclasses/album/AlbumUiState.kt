@@ -16,8 +16,6 @@ data class AlbumUiState(
     override val isDownloadable: Boolean = false,
     override val isInLibrary: Boolean,
     override val isLocal: Boolean,
-    override val isOnYoutube: Boolean,
-    override val isSaved: Boolean,
     override val isSelected: Boolean,
     override val musicBrainzReleaseGroupId: String?,
     override val musicBrainzReleaseId: String?,

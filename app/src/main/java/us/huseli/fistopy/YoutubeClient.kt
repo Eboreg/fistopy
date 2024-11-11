@@ -9,9 +9,9 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import us.huseli.retaintheme.extensions.mergeWith
-import us.huseli.retaintheme.extensions.toDuration
 import us.huseli.fistopy.Constants.IMAGE_THUMBNAIL_MAX_WIDTH_PX
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.track.ExternalTrackCombo
 import us.huseli.fistopy.dataclasses.youtube.YoutubeImage
 import us.huseli.fistopy.dataclasses.youtube.YoutubeMetadata
 import us.huseli.fistopy.dataclasses.youtube.YoutubePlaylist
@@ -20,6 +20,8 @@ import us.huseli.fistopy.dataclasses.youtube.YoutubeVideo
 import us.huseli.fistopy.enums.Region
 import us.huseli.fistopy.externalcontent.SearchParams
 import us.huseli.fistopy.interfaces.ILogger
+import us.huseli.retaintheme.extensions.mergeWith
+import us.huseli.retaintheme.extensions.toDuration
 import java.util.regex.Pattern
 import kotlin.math.absoluteValue
 
@@ -27,7 +29,7 @@ fun playlistSearchChannel(
     params: SearchParams,
     client: AbstractYoutubeClient,
     scope: CoroutineScope,
-) = Channel<YoutubePlaylist>().apply {
+) = Channel<ExternalAlbumWithTracksCombo<YoutubePlaylist>>().apply {
     scope.launch {
         params.freeText?.takeIf { it.isNotEmpty() }?.also { freeText ->
             var nextToken: String?
@@ -37,7 +39,7 @@ fun playlistSearchChannel(
 
             for (playlist in primaryResult.playlists) {
                 usedPlaylistIds.add(playlist.id)
-                send(playlist)
+                send(playlist.toAlbumWithTracks())
             }
 
             val secondaryResult = client.getPlaylistSearchResult(query = freeText, playlistSpecificSearch = false)
@@ -46,7 +48,7 @@ fun playlistSearchChannel(
             for (playlist in secondaryResult.playlists) {
                 if (!usedPlaylistIds.contains(playlist.id)) {
                     usedPlaylistIds.add(playlist.id)
-                    send(playlist)
+                    send(playlist.toAlbumWithTracks())
                 }
             }
 
@@ -57,7 +59,7 @@ fun playlistSearchChannel(
                 for (playlist in result.playlists) {
                     if (!usedPlaylistIds.contains(playlist.id)) {
                         usedPlaylistIds.add(playlist.id)
-                        send(playlist)
+                        send(playlist.toAlbumWithTracks())
                     }
                 }
             }
@@ -71,7 +73,7 @@ fun videoSearchChannel(
     params: SearchParams,
     client: AbstractYoutubeClient,
     scope: CoroutineScope,
-) = Channel<YoutubeVideo>().apply {
+) = Channel<ExternalTrackCombo<YoutubeVideo>>().apply {
     scope.launch {
         params.freeText?.takeIf { it.isNotEmpty() }?.also { freeText ->
             var nextToken: String? = null
@@ -81,7 +83,7 @@ fun videoSearchChannel(
 
                 nextToken = result.nextToken
                 for (video in result.videos) {
-                    send(video)
+                    send(video.toTrackCombo())
                 }
             } while (nextToken != null)
         }

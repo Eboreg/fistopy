@@ -1,13 +1,9 @@
 package us.huseli.fistopy.dataclasses.musicbrainz
 
 import com.google.gson.annotations.SerializedName
+import us.huseli.fistopy.dataclasses.album.IAlbumProducer
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
-import us.huseli.fistopy.dataclasses.album.UnsavedAlbumCombo
 import us.huseli.fistopy.enums.AlbumType
-import us.huseli.fistopy.interfaces.IExternalAlbum
-import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
-import java.util.UUID
-import kotlin.time.Duration
 
 @Suppress("unused", "IncorrectFormatting")
 enum class MusicBrainzReleaseGroupPrimaryType(val sortPrio: Int) {
@@ -42,65 +38,38 @@ enum class MusicBrainzReleaseGroupSecondaryType {
     @SerializedName("Field recording") FIELD_RECORDING,
 }
 
-abstract class AbstractMusicBrainzReleaseGroup : AbstractMusicBrainzItem(), IHasMusicBrainzIds, IExternalAlbum {
+abstract class AbstractMusicBrainzReleaseGroup : AbstractMusicBrainzItem(), IAlbumProducer {
     abstract val firstReleaseDate: String?
     abstract val primaryType: MusicBrainzReleaseGroupPrimaryType?
     abstract val secondaryTypes: List<MusicBrainzReleaseGroupSecondaryType>?
     abstract val artistCredit: List<MusicBrainzArtistCredit>?
 
     abstract override val id: String
-    abstract override val title: String
+    abstract val title: String
 
-    override val musicBrainzReleaseGroupId: String?
-        get() = id
-
-    override val musicBrainzReleaseId: String?
-        get() = null
-
-    override val duration: Duration?
-        get() = null
-
-    override val playCount: Int?
-        get() = null
-
-    override val thumbnailUrl: String?
-        get() = null
-
-    override val trackCount: Int?
-        get() = null
-
-    override val albumType: AlbumType?
+    val albumType: AlbumType?
         get() {
             if (secondaryTypes?.contains(MusicBrainzReleaseGroupSecondaryType.COMPILATION) == true)
                 return AlbumType.COMPILATION
             return primaryType?.albumType
         }
 
-    override val artistName: String?
-        get() = artistCredit?.joined()
-
-    override val year: Int?
+    val year: Int?
         get() = firstReleaseDate
             ?.substringBefore('-')
             ?.takeIf { it.matches(Regex("^\\d{4}$")) }
             ?.toInt()
 
-    override fun toAlbumCombo(isLocal: Boolean, isInLibrary: Boolean, albumId: String?): UnsavedAlbumCombo {
-        val album = UnsavedAlbum(
-            albumId = albumId ?: UUID.randomUUID().toString(),
-            isInLibrary = isInLibrary,
-            isLocal = isLocal,
-            title = title,
-            albumType = albumType,
-            musicBrainzReleaseGroupId = id,
-            year = year,
-        )
 
-        return UnsavedAlbumCombo(
-            album = album,
-            artists = artistCredit?.toNativeAlbumArtists(albumId = album.albumId) ?: emptyList(),
-        )
-    }
+    override fun toAlbum(isLocal: Boolean, isInLibrary: Boolean, albumId: String): UnsavedAlbum = UnsavedAlbum(
+        albumId = albumId,
+        albumType = albumType,
+        isInLibrary = isInLibrary,
+        isLocal = isLocal,
+        musicBrainzReleaseGroupId = id,
+        title = title,
+        year = year,
+    )
 }
 
 data class MusicBrainzSimplifiedReleaseGroup(

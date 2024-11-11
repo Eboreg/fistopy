@@ -1,6 +1,5 @@
 package us.huseli.fistopy.dataclasses.musicbrainz
 
-import com.google.gson.annotations.SerializedName
 import us.huseli.fistopy.dataclasses.artist.UnsavedAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.UnsavedTrackArtistCredit
 
@@ -10,15 +9,8 @@ data class MusicBrainzArtistCredit(
     val name: String,
 ) {
     data class MusicBrainzArtist(
-        val disambiguation: String?,
-        val genres: List<MusicBrainzGenre>?,
         override val id: String,
         val name: String,
-        @SerializedName("sort-name")
-        val sortName: String?,
-        val type: String?,
-        @SerializedName("type-id")
-        val typeId: String?,
     ) : AbstractMusicBrainzItem()
 }
 

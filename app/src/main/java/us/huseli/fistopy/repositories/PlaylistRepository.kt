@@ -11,6 +11,8 @@ import us.huseli.fistopy.dataclasses.playlist.Playlist
 import us.huseli.fistopy.dataclasses.playlist.PlaylistUiState
 import us.huseli.fistopy.dataclasses.track.PlaylistTrack
 import us.huseli.fistopy.dataclasses.track.PlaylistTrackCombo
+import us.huseli.fistopy.dataclasses.track.TrackUiState
+import us.huseli.fistopy.dataclasses.track.toUiStates
 import us.huseli.fistopy.interfaces.ILogger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,12 +65,13 @@ class PlaylistRepository @Inject constructor(private val database: Database) : A
         }
     }
 
-    fun flowPlaylistTracks(playlistId: String) = playlistDao.flowTrackCombosByPlaylistId(playlistId)
+    fun flowPlaylistTrackUiStates(playlistId: String): Flow<ImmutableList<TrackUiState>> =
+        playlistDao.flowTrackCombosByPlaylistId(playlistId).map { it.toUiStates() }
 
     suspend fun getDuplicatePlaylistTrackCount(playlistId: String, trackIds: Collection<String>): Int =
         onIOThread { playlistDao.getDuplicateTrackCount(playlistId, trackIds) }
 
-    suspend fun getPlaylist(playlistId: String): Playlist? = playlistDao.getPlaylist(playlistId)
+    suspend fun getPlaylistName(playlistId: String): String? = playlistDao.getPlaylistName(playlistId)
 
     suspend fun insertPlaylist(playlist: Playlist) = onIOThread { playlistDao.insertPlaylists(playlist) }
 

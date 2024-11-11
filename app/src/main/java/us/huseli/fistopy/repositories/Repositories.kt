@@ -8,7 +8,7 @@ class Repositories @Inject constructor(
     val album: AlbumRepository,
     val artist: ArtistRepository,
     val discogs: DiscogsRepository,
-    val image: ImageRepository,
+    val itemSelection: ItemSelectionRepository,
     val lastFm: LastFmRepository,
     val localMedia: LocalMediaRepository,
     val message: MessageRepository,

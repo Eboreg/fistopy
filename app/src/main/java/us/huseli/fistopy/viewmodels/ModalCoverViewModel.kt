@@ -1,7 +1,10 @@
 package us.huseli.fistopy.viewmodels
 
+import android.content.Context
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,15 +17,22 @@ import kotlinx.coroutines.flow.map
 import us.huseli.fistopy.dataclasses.ModalCoverBooleans
 import us.huseli.fistopy.dataclasses.track.ModalCoverTrackUiState
 import us.huseli.fistopy.getAverageColor
+import us.huseli.fistopy.getBitmap
 import us.huseli.fistopy.repositories.Repositories
 import us.huseli.fistopy.waveList
+import us.huseli.retaintheme.extensions.square
 import javax.inject.Inject
 import kotlin.time.DurationUnit
 
 @HiltViewModel
-class ModalCoverViewModel @Inject constructor(private val repos: Repositories) : AbstractBaseViewModel() {
+class ModalCoverViewModel @Inject constructor(
+    private val repos: Repositories,
+    @ApplicationContext context: Context,
+) : AbstractBaseViewModel() {
     val albumArtAverageColor: StateFlow<Color?> = repos.player.currentCombo.map { combo ->
-        combo?.let { repos.image.getTrackComboFullImageBitmap(it) }?.getAverageColor()?.copy(alpha = 0.3f)
+        combo?.let { context.getBitmap(combo, 100)?.square()?.asImageBitmap() }
+            ?.getAverageColor()
+            ?.copy(alpha = 0.3f)
     }.stateWhileSubscribed()
     val isLoading: StateFlow<Boolean> = repos.player.isLoading
 

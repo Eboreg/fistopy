@@ -6,7 +6,6 @@ import androidx.room.DatabaseView
 import androidx.room.Embedded
 import androidx.room.Relation
 import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
-import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
 
 @DatabaseView(
     """
@@ -35,14 +34,3 @@ data class AlbumCombo(
     @ColumnInfo("AlbumCombo_unplayableTrackCount") override val unplayableTrackCount: Int,
     @ColumnInfo("AlbumCombo_isDownloadable") override val isDownloadable: Boolean,
 ) : ISavedAlbumCombo, IAlbumCombo<Album>
-
-
-data class UnsavedAlbumCombo(
-    override val album: UnsavedAlbum,
-    override val artists: List<IAlbumArtistCredit> = emptyList(),
-    override val minYear: Int? = null,
-    override val maxYear: Int? = null,
-    override val isPartiallyDownloaded: Boolean = false,
-    override val unplayableTrackCount: Int = 0,
-    override val isDownloadable: Boolean = false,
-) : IUnsavedAlbumCombo

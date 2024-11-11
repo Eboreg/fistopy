@@ -1,24 +1,18 @@
 package us.huseli.fistopy.dataclasses.musicbrainz
 
 import com.google.gson.annotations.SerializedName
-import us.huseli.fistopy.dataclasses.album.IAlbum
+import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
+import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
+import us.huseli.fistopy.dataclasses.track.ExternalTrackCombo
+import us.huseli.fistopy.dataclasses.track.IExternalTrackComboProducer
 import us.huseli.fistopy.dataclasses.track.Track
-import us.huseli.fistopy.dataclasses.track.UnsavedTrackCombo
-import us.huseli.fistopy.interfaces.IExternalTrack
 
-data class MusicBrainzRecording(
-    @SerializedName("artist-credit")
-    val artistCredit: List<MusicBrainzArtistCredit>,
-    val disambiguation: String?,
-    @SerializedName("first-release-date")
-    val firstReleaseDate: String?,
-    val genres: List<MusicBrainzGenre>,
-    override val id: String,
-    val length: Int,
-    override val title: String,
-) : AbstractMusicBrainzItem(), IExternalTrack {
-    val artist: String?
-        get() = artistCredit.joined().takeIf { it.isNotEmpty() }
+abstract class AbstractMusicBrainzRecording<T : AbstractMusicBrainzRecording<T>> : AbstractMusicBrainzItem(), IExternalTrackComboProducer<T> {
+    abstract override val id: String
+    abstract val artistCredit: List<MusicBrainzArtistCredit>
+    abstract val firstReleaseDate: String?
+    abstract val length: Int
+    abstract val title: String
 
     val year: Int?
         get() = firstReleaseDate
@@ -26,20 +20,40 @@ data class MusicBrainzRecording(
             ?.takeIf { it.matches(Regex("^\\d{4}$")) }
             ?.toInt()
 
-    override fun toTrackCombo(isInLibrary: Boolean, album: IAlbum?): UnsavedTrackCombo {
+    @Suppress("UNCHECKED_CAST")
+    override fun toTrackCombo(
+        isInLibrary: Boolean,
+        album: UnsavedAlbum?,
+        albumArtists: List<IAlbumArtistCredit>?,
+        albumPosition: Int?
+    ): ExternalTrackCombo<T> {
         val track = Track(
-            isInLibrary = isInLibrary,
+            albumId = album?.albumId,
+            albumPosition = albumPosition,
+            durationMs = length.toLong(),
             musicBrainzId = id,
             title = title,
             year = year,
-            durationMs = length.toLong(),
-            albumId = album?.albumId,
+            isInLibrary = isInLibrary,
         )
 
-        return UnsavedTrackCombo(
-            track = track,
-            trackArtists = artistCredit.toNativeTrackArtists(trackId = track.trackId),
+        return ExternalTrackCombo(
+            externalData = this as T,
             album = album,
+            track = track,
+            trackArtists = artistCredit.toNativeTrackArtists(track.trackId),
+            albumArtists = albumArtists ?: emptyList(),
         )
     }
 }
+
+data class MusicBrainzRecording(
+    @SerializedName("artist-credit")
+    override val artistCredit: List<MusicBrainzArtistCredit>,
+    @SerializedName("first-release-date")
+    override val firstReleaseDate: String?,
+    val genres: List<MusicBrainzGenre>,
+    override val id: String,
+    override val length: Int,
+    override val title: String,
+) : AbstractMusicBrainzRecording<MusicBrainzRecording>()

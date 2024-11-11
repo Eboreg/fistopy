@@ -27,7 +27,7 @@ data class TrackUiState(
     val discNumber: Int?,
     val durationMs: Long?,
     val year: Int?,
-) : AbstractTrackUiState() {
+) : AbstractTrackUiState(), ISelectableTrackUiState {
     fun getSecondaryInfo(
         showAlbum: Boolean,
         showArtist: Boolean,
@@ -40,4 +40,6 @@ data class TrackUiState(
             year.takeIf { showYear }?.toString(),
         ).takeIf { it.isNotEmpty() }?.joinToString(separator)
     }
+
+    override fun withIsSelected(value: Boolean) = copy(isSelected = value)
 }

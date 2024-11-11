@@ -28,6 +28,7 @@ abstract class QueueDao : ILogger {
     @Query("DELETE FROM QueueTrack WHERE QueueTrack_queueTrackId IN (:queueTrackIds)")
     abstract suspend fun deleteQueueTracks(vararg queueTrackIds: String)
 
+    @Transaction
     @Query("SELECT TrackCombo.* FROM QueueTrack JOIN TrackCombo ON Track_trackId = QueueTrack_trackId")
     abstract fun flowTrackCombosInQueue(): Flow<List<TrackCombo>>
 

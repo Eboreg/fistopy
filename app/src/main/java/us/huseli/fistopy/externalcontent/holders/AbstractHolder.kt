@@ -6,9 +6,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import us.huseli.retaintheme.extensions.slice
 import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.interfaces.IStringIdItem
+import us.huseli.retaintheme.extensions.slice
 
 @Suppress("PropertyName")
 abstract class AbstractHolder<T : IStringIdItem> : AbstractScopeHolder() {
@@ -70,10 +70,17 @@ abstract class AbstractHolder<T : IStringIdItem> : AbstractScopeHolder() {
         if (_currentPage.value > 0) _currentPage.value--
     }
 
+    fun itemIsSelected(itemId: String) = _selectedItemIds.value.contains(itemId)
+
     fun selectAll() {
         launchOnIOThread {
             _selectedItemIds.value = currentPageItems.first().map { it.id }
         }
+    }
+
+    fun setItemsIsSelected(itemIds: Iterable<String>, value: Boolean) {
+        if (value) _selectedItemIds.value += itemIds
+        else _selectedItemIds.value -= itemIds
     }
 
     fun start() {

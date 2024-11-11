@@ -81,7 +81,6 @@ fun rememberModalCoverState(
     val isDragged = state.interactionSource.collectIsDraggedAsState()
 
     LaunchedEffect(contentSize) {
-        state.log("running LaunchedEffect for contentSize=$contentSize")
         state.updateContentSize(contentSize)
     }
 
@@ -91,7 +90,6 @@ fun rememberModalCoverState(
 
     LaunchedEffect(Unit) {
         snapshotFlow { state.draggableState.currentValue }.collect { status ->
-            state.log("draggableState.currentValue=$status; draggableState.targetValue=${state.draggableState.targetValue}, state.currentAnchor=${state.currentAnchor}")
             state.setAnchor(status)
         }
     }
@@ -101,7 +99,6 @@ fun rememberModalCoverState(
         snapshotFlow { isDragged.value }.collect { isDragged ->
             if (isDragged) state.setIsTransient(true)
             else if (!state.draggableState.isAnimationRunning) state.setIsTransient(false)
-            state.log("isDragged.value=$isDragged; draggableState.currentValue=${state.draggableState.currentValue}, draggableState.targetValue=${state.draggableState.targetValue}, state.currentAnchor=${state.currentAnchor}, state.transientStatus=${state.transientStatus}")
         }
     }
 
@@ -110,7 +107,6 @@ fun rememberModalCoverState(
             if (isAnimating) {
                 if (state.draggableState.targetValue != state.draggableState.currentValue) state.setIsTransient(true)
             } else if (!isDragged.value) state.setIsTransient(false)
-            state.log("draggableState.isAnimationRunning=$isAnimating; draggableState.currentValue=${state.draggableState.currentValue}, draggableState.targetValue=${state.draggableState.targetValue}, state.currentAnchor=${state.currentAnchor}, state.transientStatus=${state.transientStatus}")
         }
     }
 
@@ -177,30 +173,22 @@ class ModalCoverState(
 
     @Stable
     private suspend fun animateTo(value: ModalCoverAnchor) {
-        if (value != currentAnchor) {
-            log("animateTo($value): currentAnchor=$currentAnchor")
-            draggableState.animateTo(value)
-        }
+        if (value != currentAnchor) draggableState.animateTo(value)
     }
 
     @Stable
     fun animateToCollapsed() {
-        log("animateToCollapsed()")
         scope.launch { animateTo(ModalCoverAnchor.Collapsed) }
     }
 
     @Stable
     fun animateToExpanded() {
-        log("animateToExpanded()")
         scope.launch { animateTo(ModalCoverAnchor.Expanded) }
     }
 
     @Stable
     fun setAnchor(value: ModalCoverAnchor) {
-        if (currentAnchor != value) {
-            log("setAnchor($value), currentAnchor=$currentAnchor")
-            currentAnchor = value
-        }
+        if (currentAnchor != value) currentAnchor = value
     }
 
     @Stable
@@ -214,11 +202,8 @@ class ModalCoverState(
                 ModalCoverAnchor.Expanded -> ModalCoverTransientStatus.Collapsing
                 ModalCoverAnchor.Collapsed -> ModalCoverTransientStatus.Expanding
             }
-
-            log("setIsTransient(true): currentAnchor=$currentAnchor, transientStatus=$transientStatus; setting transientStatus=$newTransientStatus")
             transientStatus = newTransientStatus
         } else if (!value) {
-            log("setIsTransient(false): currentAnchor=$currentAnchor, transientStatus=$transientStatus; setting transientStatus=null")
             transientStatus = null
         }
     }
@@ -253,7 +238,6 @@ fun Modifier.modalCoverContainer(state: ModalCoverState) = this
         val placeable = measurable.measure(constraints.offset(0, -offset))
 
         layout(width = placeable.width, height = placeable.height + offset) {
-            state.log("placeable.height=${placeable.height}, offset=$offset")
             placeable.place(0, offset)
         }
     }

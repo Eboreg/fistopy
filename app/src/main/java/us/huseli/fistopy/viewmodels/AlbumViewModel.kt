@@ -5,6 +5,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,21 +15,23 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.transformWhile
+import us.huseli.fistopy.AbstractTrackUiStateListHandler
 import us.huseli.fistopy.AlbumDownloadTask
 import us.huseli.fistopy.Constants.NAV_ARG_ALBUM
 import us.huseli.fistopy.dataclasses.ProgressData
 import us.huseli.fistopy.dataclasses.album.AlbumUiState
 import us.huseli.fistopy.dataclasses.album.AlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.TrackMergeStrategy
+import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.album.withUpdates
 import us.huseli.fistopy.dataclasses.artist.Artist
+import us.huseli.fistopy.dataclasses.callbacks.AppDialogCallbacks
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseGroupBrowse
 import us.huseli.fistopy.dataclasses.track.AbstractTrackUiState
 import us.huseli.fistopy.dataclasses.track.AlbumTrackUiState
 import us.huseli.fistopy.dataclasses.track.TrackCombo
 import us.huseli.fistopy.enums.AlbumType
 import us.huseli.fistopy.enums.ListUpdateStrategy
-import us.huseli.fistopy.interfaces.IExternalAlbum
+import us.huseli.fistopy.enums.TrackMergeStrategy
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
 import us.huseli.retaintheme.extensions.filterValuesNotNull
@@ -41,16 +44,16 @@ class AlbumViewModel @Inject constructor(
     private val repos: Repositories,
     private val managers: Managers,
     savedStateHandle: SavedStateHandle,
-) : AbstractTrackListViewModel<AlbumTrackUiState>("AlbumViewModel", repos, managers) {
+) : AbstractBaseViewModel() {
     data class MusicBrainzArtistAssociation(val native: Artist, val order: Int, val musicBrainzId: String)
 
     data class OtherArtistAlbums(
         val albumTypes: ImmutableList<AlbumType>,
-        val albums: ImmutableList<IExternalAlbum>,
+        val albums: ImmutableList<IAlbum>,
         val artist: Artist,
         val isExpanded: Boolean = false,
         val order: Int,
-        val preview: ImmutableList<IExternalAlbum>,
+        val preview: ImmutableList<IAlbum>,
         val musicBrainzArtistId: String,
     )
 
@@ -84,21 +87,69 @@ class AlbumViewModel @Inject constructor(
     }
 
     private val _otherArtistAlbumsMap = _primaryMusicBrainzArtists.map { artists ->
-        val result = mutableMapOf<MusicBrainzArtistAssociation, List<IExternalAlbum>>()
+        val result = mutableMapOf<MusicBrainzArtistAssociation, List<IAlbum>>()
 
         for (artist in artists) {
             if (result.size < 3) {
                 repos.musicBrainz.flowArtistReleaseGroups(artistId = artist.musicBrainzId).toList()
                     .sortedWith(MusicBrainzReleaseGroupBrowse.ReleaseGroup.comparator)
                     .takeIf { it.isNotEmpty() }
+                    ?.map { it.toAlbum() }
                     ?.also { result[artist] = it }
             }
         }
         result
     }
 
-    private val _trackCombos: StateFlow<List<TrackCombo>> =
-        repos.track.flowTrackCombosByAlbumId(_albumId).stateWhileSubscribed(emptyList())
+    private val trackStateHandler =
+        object : AbstractTrackUiStateListHandler<AlbumTrackUiState>(key = "album", repos = repos, managers = managers) {
+            private val _trackCombos: StateFlow<List<TrackCombo>> =
+                repos.track.flowTrackCombosByAlbumId(_albumId).stateWhileSubscribed(emptyList())
+
+            override val baseItems: Flow<List<AlbumTrackUiState>> =
+                combine(_albumCombo, _trackCombos) { albumCombo, trackCombos ->
+                    trackCombos.map { combo ->
+                        AlbumTrackUiState(
+                            albumId = combo.track.albumId,
+                            albumTitle = albumCombo?.album?.title,
+                            artists = combo.trackArtists
+                                .map { AbstractTrackUiState.Artist.fromArtistCredit(it) }
+                                .toImmutableList(),
+                            artistString = combo.artistString,
+                            durationMs = combo.track.durationMs,
+                            id = combo.track.trackId,
+                            isDownloadable = combo.track.isDownloadable,
+                            isInLibrary = combo.track.isInLibrary,
+                            isPlayable = combo.track.isPlayable,
+                            isSelected = false,
+                            musicBrainzReleaseGroupId = combo.album?.musicBrainzReleaseGroupId,
+                            musicBrainzReleaseId = combo.album?.musicBrainzReleaseId,
+                            positionString = combo.track.getPositionString(albumCombo?.discCount ?: 1),
+                            spotifyId = combo.track.spotifyId,
+                            spotifyWebUrl = combo.track.spotifyWebUrl,
+                            title = combo.track.title,
+                            youtubeWebUrl = combo.track.youtubeWebUrl,
+                            fullImageUrl = combo.fullImageUrl,
+                            thumbnailUrl = combo.thumbnailUrl,
+                        )
+                    }
+                }
+
+            override fun playTrack(state: AbstractTrackUiState) {
+                _trackCombos.value
+                    .indexOfFirst { it.track.trackId == state.trackId }
+                    .takeIf { it >= 0 }
+                    ?.also { trackIdx -> managers.player.playAlbum(_albumId, trackIdx) }
+            }
+        }
+
+    val albumNotFound = _albumNotFound.asStateFlow()
+    val importProgress: StateFlow<ProgressData> = _importProgress.asStateFlow()
+    val downloadState: StateFlow<AlbumDownloadTask.UiState?> =
+        managers.library.getAlbumDownloadUiStateFlow(_albumId).stateWhileSubscribed()
+    val selectedTrackCount = trackStateHandler.selectedItemCount
+    val trackUiStates = trackStateHandler.items
+    val uiState: StateFlow<AlbumUiState?> = _albumCombo.map { it?.toUiState() }.stateWhileSubscribed()
 
     val otherArtistAlbums: StateFlow<ImmutableList<OtherArtistAlbums>> = combine(
         _otherArtistAlbumsMap,
@@ -125,69 +176,27 @@ class AlbumViewModel @Inject constructor(
         }.filterNotNull().sortedBy { it.order }.toImmutableList()
     }.stateWhileSubscribed(persistentListOf())
 
-    val albumNotFound = _albumNotFound.asStateFlow()
-    val importProgress: StateFlow<ProgressData> = _importProgress.asStateFlow()
-    val downloadState: StateFlow<AlbumDownloadTask.UiState?> =
-        managers.library.getAlbumDownloadUiStateFlow(_albumId).stateWhileSubscribed()
-
-    val tagNames: StateFlow<ImmutableList<String>> = repos.album.flowTagsByAlbumId(_albumId)
-        .map { tags -> tags.map { it.name }.toImmutableList() }
-        .stateWhileSubscribed(persistentListOf())
-
-    override val baseTrackUiStates: StateFlow<ImmutableList<AlbumTrackUiState>> =
-        combine(_albumCombo, _trackCombos) { albumCombo, trackCombos ->
-            trackCombos.map { combo ->
-                AlbumTrackUiState(
-                    albumId = combo.track.albumId,
-                    albumTitle = albumCombo?.album?.title,
-                    artists = combo.trackArtists
-                        .map { AbstractTrackUiState.Artist.fromArtistCredit(it) }
-                        .toImmutableList(),
-                    artistString = combo.artistString,
-                    durationMs = combo.track.durationMs,
-                    id = combo.track.trackId,
-                    isDownloadable = combo.track.isDownloadable,
-                    isInLibrary = combo.track.isInLibrary,
-                    isPlayable = combo.track.isPlayable,
-                    isSelected = false,
-                    musicBrainzReleaseGroupId = combo.album?.musicBrainzReleaseGroupId,
-                    musicBrainzReleaseId = combo.album?.musicBrainzReleaseId,
-                    positionString = combo.track.getPositionString(albumCombo?.discCount ?: 1),
-                    spotifyId = combo.track.spotifyId,
-                    spotifyWebUrl = combo.track.spotifyWebUrl,
-                    title = combo.track.title,
-                    youtubeWebUrl = combo.track.youtubeWebUrl,
-                    fullImageUrl = combo.fullImageUrl,
-                    thumbnailUrl = combo.thumbnailUrl,
-                )
-            }.toImmutableList()
-        }.stateWhileSubscribed(persistentListOf())
-
-    val positionColumnWidthDp: StateFlow<Int> = baseTrackUiStates.map { states ->
+    val positionColumnWidthDp: StateFlow<Int> = trackStateHandler.baseItems.map { states ->
         val trackPositions = states.map { it.positionString }
         trackPositions.maxOfOrNull { it.length * 10 }?.plus(10) ?: 40
     }.stateWhileSubscribed(40)
 
-    val uiState: StateFlow<AlbumUiState?> = _albumCombo.map { it?.toUiState() }.stateWhileSubscribed()
+    val tagNames: StateFlow<ImmutableList<String>> = repos.album.flowTagNamesByAlbumId(_albumId)
+        .map { it.toImmutableList() }
+        .stateWhileSubscribed(persistentListOf())
 
     init {
-        unselectAllTracks()
+        trackStateHandler.unselectAllItems()
         refetchIfNeeded()
     }
-
-    override fun playTrack(state: AbstractTrackUiState) {
-        val trackIdx = _trackCombos.value.indexOfFirst { it.track.trackId == state.trackId }
-
-        if (trackIdx > -1) managers.player.playAlbum(_albumId, trackIdx)
-    }
-
-    override fun setTrackStateIsSelected(state: AlbumTrackUiState, isSelected: Boolean) =
-        state.copy(isSelected = isSelected)
 
     fun ensureTrackMetadataAsync(trackId: String) = managers.library.ensureTrackMetadataAsync(trackId)
 
     fun getTrackDownloadUiStateFlow(trackId: String) =
         managers.library.getTrackDownloadUiStateFlow(trackId).stateWhileSubscribed()
+
+    fun getTrackSelectionCallbacks(dialogCallbacks: AppDialogCallbacks) =
+        trackStateHandler.getTrackSelectionCallbacks(dialogCallbacks)
 
     fun matchUnplayableTracks() {
         launchOnMainThread {
@@ -200,9 +209,9 @@ class AlbumViewModel @Inject constructor(
     fun onOtherArtistAlbumClick(externalId: String, onGotoAlbumClick: (String) -> Unit) =
         managers.library.addTemporaryMusicBrainzAlbum(externalId, onGotoAlbumClick)
 
-    fun toggleOtherArtistAlbumsExpanded(obj: OtherArtistAlbums) {
-        _otherArtistAlbumsExpanded.value += obj.musicBrainzArtistId to !obj.isExpanded
-    }
+    fun onTrackClick(state: AlbumTrackUiState) = trackStateHandler.onTrackClick(state)
+
+    fun onTrackLongClick(trackId: String) = trackStateHandler.onItemLongClick(trackId)
 
     fun toggleOtherArtistAlbumsAlbumType(obj: OtherArtistAlbums, albumType: AlbumType) {
         val current = obj.albumTypes.toMutableList()
@@ -210,6 +219,10 @@ class AlbumViewModel @Inject constructor(
         if (current.contains(albumType)) current -= albumType
         else current += albumType
         _otherArtistAlbumsAlbumTypes.value += obj.musicBrainzArtistId to current
+    }
+
+    fun toggleOtherArtistAlbumsExpanded(obj: OtherArtistAlbums) {
+        _otherArtistAlbumsExpanded.value += obj.musicBrainzArtistId to !obj.isExpanded
     }
 
     private fun refetchIfNeeded() = launchOnIOThread {
@@ -230,8 +243,8 @@ class AlbumViewModel @Inject constructor(
                     repos.musicBrainz
                         .getRelease(musicBrainzId)
                         ?.toAlbumWithTracks(
-                            isInLibrary = combo.album.isInLibrary,
                             isLocal = combo.album.isLocal,
+                            isInLibrary = combo.album.isInLibrary,
                             albumId = combo.album.albumId,
                         )
                 }

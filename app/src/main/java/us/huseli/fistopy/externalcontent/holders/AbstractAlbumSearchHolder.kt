@@ -2,36 +2,29 @@ package us.huseli.fistopy.externalcontent.holders
 
 import kotlinx.coroutines.channels.Channel
 import us.huseli.fistopy.dataclasses.album.AlbumCombo
-import us.huseli.fistopy.dataclasses.album.IAlbum
-import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.ImportableAlbumUiState
 import us.huseli.fistopy.externalcontent.SearchParams
-import us.huseli.fistopy.interfaces.IExternalAlbum
+import us.huseli.fistopy.interfaces.IStringIdItem
 
-abstract class AbstractAlbumSearchHolder<T : IExternalAlbum> : AbstractSearchHolder<ImportableAlbumUiState>() {
+abstract class AbstractAlbumSearchHolder<T : IStringIdItem> : AbstractSearchHolder<ImportableAlbumUiState>() {
     private var _existingAlbumCombos: Map<String, AlbumCombo>? = null
-    private val _externalAlbums = mutableMapOf<String, T>()
 
-    protected abstract suspend fun convertToAlbumWithTracks(
-        externalAlbum: T,
-        albumId: String,
-    ): IAlbumWithTracksCombo<IAlbum>?
+    protected val externalAlbums = mutableMapOf<String, ExternalAlbumWithTracksCombo<T>>()
 
-    protected abstract fun getExternalAlbumChannel(searchParams: SearchParams): Channel<T>
+    protected abstract fun getExternalAlbumChannel(searchParams: SearchParams): Channel<ExternalAlbumWithTracksCombo<T>>
 
     protected abstract suspend fun loadExistingAlbumCombos(): Map<String, AlbumCombo>
 
-    suspend fun convertToAlbumWithTracks(albumId: String): IAlbumWithTracksCombo<IAlbum>? =
-        _externalAlbums[albumId]?.let { convertToAlbumWithTracks(it, albumId) }
+    abstract suspend fun getAlbumWithTracks(albumId: String): ExternalAlbumWithTracksCombo<*>?
 
     override fun getResultChannel(searchParams: SearchParams) = Channel<ImportableAlbumUiState>().also { channel ->
         launchOnIOThread {
             for (externalAlbum in getExternalAlbumChannel(searchParams)) {
-                val combo = getExistingAlbumCombos()[externalAlbum.id]
-                    ?: externalAlbum.toAlbumCombo(isLocal = false, isInLibrary = false)
+                val combo = getExistingAlbumCombos()[externalAlbum.id] ?: externalAlbum
 
-                _externalAlbums[combo.id] = externalAlbum
-                channel.send(combo.toImportableUiState(playCount = externalAlbum.playCount))
+                externalAlbums[combo.id] = externalAlbum
+                channel.send(combo.toImportableUiState().copy(playCount = externalAlbum.playCount))
             }
             channel.close()
         }

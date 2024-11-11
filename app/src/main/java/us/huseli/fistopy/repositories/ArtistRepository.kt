@@ -7,7 +7,6 @@ import org.apache.commons.text.similarity.LevenshteinDistance
 import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.database.Database
 import us.huseli.fistopy.dataclasses.MediaStoreImage
-import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.Artist
@@ -57,15 +56,12 @@ class ArtistRepository @Inject constructor(database: Database) : AbstractScopeHo
         else emptyList<TrackArtistCredit>()
     }
 
-    suspend fun listArtistsByTrackId(trackId: String): List<Artist> =
-        onIOThread { artistDao.listArtistsByTrackId(trackId) }
-
     suspend fun setAlbumArtists(
         albumId: String,
         albumArtists: Collection<IAlbumArtistCredit>,
     ): List<AlbumArtistCredit> = onIOThread { artistDao.setAlbumArtists(albumId, albumArtists) }
 
-    suspend fun setAlbumComboArtists(combo: IAlbumWithTracksCombo<IAlbum>) = onIOThread {
+    suspend fun setAlbumComboArtists(combo: IAlbumWithTracksCombo<*, *>) = onIOThread {
         artistDao.setAlbumArtists(combo.album.albumId, combo.artists)
         artistDao.clearTrackArtists(*combo.trackIds.toTypedArray())
         if (combo.trackCombos.isNotEmpty()) artistDao.insertTrackArtists(combo.trackCombos.flatMap { it.trackArtists })

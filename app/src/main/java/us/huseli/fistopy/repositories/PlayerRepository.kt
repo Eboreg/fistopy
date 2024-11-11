@@ -148,7 +148,7 @@ class PlayerRepository @Inject constructor(
                 if (combos.isNotEmpty()) {
                     val func = { player: MediaController ->
                         player.setMediaItems(
-                            combos.map { it.toMediaItem() },
+                            combos.map { it.mediaItem },
                             currentIndex,
                             currentTrackPosition,
                         )
@@ -263,18 +263,18 @@ class PlayerRepository @Inject constructor(
     }
 
     fun insert(combo: QueueTrackCombo, position: Int) {
-        player?.addMediaItem(position, combo.toMediaItem())
+        player?.addMediaItem(position, combo.mediaItem)
     }
 
     fun insertLast(combo: QueueTrackCombo) {
-        player?.run { addMediaItem(mediaItemCount, combo.copy(position = mediaItemCount).toMediaItem()) }
+        player?.run { addMediaItem(mediaItemCount, combo.copy(position = mediaItemCount).mediaItem) }
     }
 
     fun insertLastAndPlay(combo: QueueTrackCombo) {
         player?.also {
             val index = it.mediaItemCount
 
-            it.addMediaItem(index, combo.copy(position = index).toMediaItem())
+            it.addMediaItem(index, combo.copy(position = index).mediaItem)
             play(index)
         }
     }
@@ -282,7 +282,7 @@ class PlayerRepository @Inject constructor(
     fun insertNextAndPlay(combo: QueueTrackCombo) {
         val index = nextItemIndex
 
-        player?.addMediaItem(index, combo.copy(position = index).toMediaItem())
+        player?.addMediaItem(index, combo.copy(position = index).mediaItem)
         play(index)
     }
 
@@ -290,7 +290,7 @@ class PlayerRepository @Inject constructor(
         val queueTrackCombos = _queue.value.filter { queueTrackIds.contains(it.queueTrackId) }
 
         removeFromQueue(queueTrackIds)
-        player?.addMediaItems(nextItemIndex, queueTrackCombos.map { it.toMediaItem() })
+        player?.addMediaItems(nextItemIndex, queueTrackCombos.map { it.mediaItem })
     }
 
     fun moveNextAndPlay(queueTrackIds: Collection<String>) {
@@ -338,7 +338,7 @@ class PlayerRepository @Inject constructor(
     fun replace(combo: QueueTrackCombo) {
         clearQueue()
         replaceSignal.trySend(true)
-        player?.addMediaItem(combo.copy(position = 0).toMediaItem())
+        player?.addMediaItem(combo.copy(position = 0).mediaItem)
     }
 
     fun replaceAndPlay(combo: QueueTrackCombo) {
@@ -414,7 +414,7 @@ class PlayerRepository @Inject constructor(
     }
 
     fun updateTrack(combo: QueueTrackCombo) {
-        player?.replaceMediaItem(combo.position, combo.toMediaItem())
+        player?.replaceMediaItem(combo.position, combo.mediaItem)
     }
 
 
@@ -485,7 +485,7 @@ class PlayerRepository @Inject constructor(
                 saveQueueIndex()
                 val combo = findQueueTrackByMediaItem(mediaItem)
 
-                if (combo != _currentCombo.value) {
+                if (combo == null || !combo.hasSameTrack(_currentCombo.value)) {
                     log("current track: ${combo?.track}, URI: ${combo?.uri}")
                     _currentCombo.value = combo
                     if (combo != null) playedQueueTrackIds.value += combo.queueTrackId

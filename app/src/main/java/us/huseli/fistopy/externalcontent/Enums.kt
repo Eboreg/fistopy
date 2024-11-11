@@ -5,14 +5,14 @@ import us.huseli.fistopy.R
 
 enum class ImportBackend(@StringRes val stringRes: Int) {
     LOCAL(R.string.local),
-    SPOTIFY(R.string.spotify),
     LAST_FM(R.string.last_fm),
+    SPOTIFY(R.string.spotify),
 }
 
 enum class SearchBackend(@StringRes val stringRes: Int) {
     YOUTUBE(R.string.youtube),
-    SPOTIFY(R.string.spotify),
     MUSICBRAINZ(R.string.musicbrainz),
+    SPOTIFY(R.string.spotify),
 }
 
 enum class ExternalListType(@StringRes val stringRes: Int) {
@@ -21,8 +21,8 @@ enum class ExternalListType(@StringRes val stringRes: Int) {
 }
 
 enum class SearchCapability {
-    TRACK,
     ALBUM,
     ARTIST,
     FREE_TEXT,
+    TRACK,
 }

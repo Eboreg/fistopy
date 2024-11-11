@@ -2,7 +2,6 @@ package us.huseli.fistopy.viewmodels
 
 import android.net.Uri
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,13 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import us.huseli.fistopy.AbstractAlbumUiStateListHandler
 import us.huseli.fistopy.dataclasses.ProgressData
 import us.huseli.fistopy.dataclasses.album.ImportableAlbumUiState
-import us.huseli.fistopy.dataclasses.track.TrackUiState
 import us.huseli.fistopy.externalcontent.IExternalImportBackend
 import us.huseli.fistopy.externalcontent.ImportBackend
 import us.huseli.fistopy.externalcontent.holders.AbstractAlbumImportHolder
-import us.huseli.fistopy.interfaces.IExternalAlbumWithTracks
 import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
@@ -31,25 +29,37 @@ import javax.inject.Inject
 class ExternalAlbumImportViewModel @Inject constructor(
     private val repos: Repositories,
     private val managers: Managers,
-) : AbstractAlbumListViewModel<ImportableAlbumUiState>("ExternalAlbumImportViewModel2", repos, managers), ILogger {
+) : AbstractBaseViewModel(), ILogger {
     private val _backendKey = MutableStateFlow(ImportBackend.LOCAL)
     private val _backend = _backendKey.mapLatest { managers.external.getImportBackend(it) }
 
-    private val _holder: Flow<AbstractAlbumImportHolder<out IExternalAlbumWithTracks>> =
+    private val _holder: Flow<AbstractAlbumImportHolder<*>> =
         _backend.mapLatest { it.albumImportHolder }
 
-    private val currentBackend: IExternalImportBackend<*>
+    private val albumStateHandler = object : AbstractAlbumUiStateListHandler<ImportableAlbumUiState>(
+        key = "externalalbumimport",
+        repos = repos,
+        managers = managers,
+    ) {
+        override val baseItems: StateFlow<List<ImportableAlbumUiState>> = _holder
+            .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
+            .stateWhileSubscribed(persistentListOf())
+
+        override val selectedItemIds: Flow<List<String>> = _holder.flatMapLatest { it.selectedItemIds }
+
+        override fun setItemsIsSelected(itemIds: Iterable<String>, value: Boolean) =
+            currentBackend.albumImportHolder.setItemsIsSelected(itemIds, value)
+
+        override fun unselectAllItems() = currentBackend.albumImportHolder.deselectAll()
+    }
+
+    private val currentBackend: IExternalImportBackend
         get() = managers.external.getImportBackend(_backendKey.value)
 
-    override val baseAlbumUiStates: StateFlow<ImmutableList<ImportableAlbumUiState>> = _holder
-        .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
-        .stateWhileSubscribed(persistentListOf())
-    override val baseTrackUiStates: StateFlow<ImmutableList<TrackUiState>> = MutableStateFlow(persistentListOf())
-    override val selectedAlbumIds: Flow<List<String>> = _holder.flatMapLatest { it.selectedItemIds }
-
+    val albumUiStates = albumStateHandler.items
     val backendKey = _backendKey.asStateFlow()
     val canImport = _holder.flatMapLatest { it.canImport }.stateWhileSubscribed(false)
-    val currentAlbumCount = baseAlbumUiStates.map { it.size }.stateWhileSubscribed(0)
+    val currentAlbumCount = albumStateHandler.itemCount
     val displayOffset = _holder.flatMapLatest { it.displayOffset }.stateWhileSubscribed(0)
     val hasNextPage = _holder.flatMapLatest { it.hasNextPage }.stateWhileSubscribed(false)
     val hasPreviousPage =
@@ -62,6 +72,7 @@ class ExternalAlbumImportViewModel @Inject constructor(
         _holder.flatMapLatest { it.isTotalCountExact }.stateWhileSubscribed(false)
     val progress = managers.external.albumImportProgress.stateWhileSubscribed(ProgressData())
     val searchTerm = _holder.flatMapLatest { it.searchTerm }.stateWhileSubscribed("")
+    val selectedAlbumCount = albumStateHandler.selectedItemCount
     val totalItemCount = _holder.flatMapLatest { it.totalItemCount }.stateWhileSubscribed(0)
 
     val isImportButtonEnabled =
@@ -93,6 +104,8 @@ class ExternalAlbumImportViewModel @Inject constructor(
         currentBackend.albumImportHolder.start()
     }
 
+    fun onAlbumLongClick(albumId: String) = albumStateHandler.onItemLongClick(albumId)
+
     fun setBackend(value: ImportBackend) {
         _backendKey.value = value
     }
@@ -104,11 +117,11 @@ class ExternalAlbumImportViewModel @Inject constructor(
     fun setStartDestination(value: String) = repos.settings.setStartDestination(value)
 
     fun toggleSelectAll() {
-        if (isAllSelected.value) currentBackend.albumImportHolder.deselectAll()
-        else currentBackend.albumImportHolder.selectAll()
+        if (isAllSelected.value) albumStateHandler.unselectAllItems()
+        else albumStateHandler.selectAllItems()
     }
 
-    fun toggleSelected(albumId: String) = currentBackend.albumImportHolder.toggleItemSelected(albumId)
+    fun toggleSelected(albumId: String) = albumStateHandler.toggleItemSelected(albumId)
 
     fun unauthorizeSpotify() = repos.spotify.unauthorize()
 }

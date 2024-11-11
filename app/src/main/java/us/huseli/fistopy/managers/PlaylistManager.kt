@@ -35,18 +35,16 @@ class PlaylistManager @Inject constructor(private val repos: Repositories) : Abs
         launchOnIOThread {
             repos.playlist.deletePlaylist(playlistId)
             repos.message.onDeletePlaylist(
-                onUndoClick = { undoDeletePlaylist(onGotoPlaylistClick = onGotoPlaylistClick) },
+                onUndoClick = {
+                    repos.playlist.undoDeletePlaylist {
+                        repos.message.onUndeletePlaylist(onGotoPlaylistClick = onGotoPlaylistClick)
+                    }
+                },
             )
         }
     }
 
     fun renamePlaylist(playlistId: String, newName: String) {
         launchOnIOThread { repos.playlist.renamePlaylist(playlistId, newName) }
-    }
-
-    private fun undoDeletePlaylist(onGotoPlaylistClick: () -> Unit) {
-        repos.playlist.undoDeletePlaylist {
-            repos.message.onUndeletePlaylist(onGotoPlaylistClick = onGotoPlaylistClick)
-        }
     }
 }

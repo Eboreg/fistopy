@@ -1,5 +1,6 @@
 package us.huseli.fistopy.viewmodels
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,17 +17,21 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import us.huseli.retaintheme.extensions.launchOnIOThread
 import us.huseli.fistopy.dataclasses.MediaStoreImage
 import us.huseli.fistopy.dataclasses.album.EditAlbumUiState
+import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.artist.UnsavedAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.UnsavedTrackArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
 import us.huseli.fistopy.dataclasses.tag.Tag
 import us.huseli.fistopy.dataclasses.toMediaStoreImage
 import us.huseli.fistopy.dataclasses.track.TrackUiState
+import us.huseli.fistopy.dataclasses.track.listCoverImages
+import us.huseli.fistopy.getBitmap
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnIOThread
+import us.huseli.retaintheme.extensions.square
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -75,27 +80,27 @@ class EditAlbumViewModel @Inject constructor(
         launchOnIOThread { repos.album.clearAlbumArt(albumId) }
     }
 
-    fun flowAlbumArt(albumId: String): StateFlow<List<AlbumArt>> =
+    fun flowAlbumArt(albumId: String, context: Context): StateFlow<List<AlbumArt>> =
         MutableStateFlow<Set<AlbumArt?>>(emptySet()).also { flow ->
             _isLoadingAlbumArt.value = true
 
             launchOnIOThread {
                 repos.album.getAlbumWithTracks(albumId)?.also { combo ->
-                    combo.album.albumArt?.also { flow.value += getAlbumArt(it, true) }
+                    combo.album.albumArt?.also { flow.value += getAlbumArt(it, context, true) }
 
                     val jobs = listOf(
                         launch {
-                            repos.spotify.searchAlbumArt(combo.album, combo.artists.joined())
-                                .forEach { flow.value += getAlbumArt(it) }
+                            repos.spotify.searchAlbumArt(combo)
+                                .forEach { flow.value += getAlbumArt(it, context) }
                         },
                         launch {
                             combo.album.youtubePlaylist?.fullImage?.url?.toMediaStoreImage()?.also {
-                                flow.value += getAlbumArt(it)
+                                flow.value += getAlbumArt(it, context)
                             }
                         },
                         launch {
-                            repos.image.collectNewLocalAlbumArtUris(combo).forEach { uri ->
-                                flow.value += getAlbumArt(uri.toMediaStoreImage())
+                            collectNewLocalAlbumArtUris(combo, context).forEach { uri ->
+                                flow.value += getAlbumArt(uri.toMediaStoreImage(), context)
                             }
                         },
                         launch {
@@ -107,7 +112,9 @@ class EditAlbumViewModel @Inject constructor(
                             response?.data?.results?.forEach { item ->
                                 repos.discogs.getMaster(item.id)?.data?.images
                                     ?.filter { image -> image.type == "primary" }
-                                    ?.forEach { image -> flow.value += getAlbumArt(image.uri.toMediaStoreImage()) }
+                                    ?.forEach { image ->
+                                        flow.value += getAlbumArt(image.uri.toMediaStoreImage(), context)
+                                    }
                             }
                         },
                         launch {
@@ -116,7 +123,7 @@ class EditAlbumViewModel @Inject constructor(
                             if (releaseId != null) {
                                 repos.musicBrainz.getSiblingReleaseIds(releaseId).forEach { siblingId ->
                                     repos.musicBrainz.listAllReleaseCoverArt(siblingId)?.forEach { image ->
-                                        flow.value += getAlbumArt(image.image.toMediaStoreImage())
+                                        flow.value += getAlbumArt(image.image.toMediaStoreImage(), context)
                                     }
                                 }
                             }
@@ -140,12 +147,13 @@ class EditAlbumViewModel @Inject constructor(
         launchOnIOThread { repos.album.updateAlbumArt(albumId, albumArt) }
     }
 
-    fun saveAlbumArtFromUri(albumId: String, uri: Uri, onSuccess: () -> Unit) {
+    fun saveAlbumArtFromUri(albumId: String, uri: Uri, context: Context, onSuccess: () -> Unit) {
         launchOnIOThread {
             try {
                 val albumArt = uri.toMediaStoreImage()
+                val bitmap = context.getBitmap(uri)
 
-                repos.image.getFullBitmap(uri) // Just to test so it doesn't fail.
+                assert(bitmap != null) // Just to test so it doesn't fail.
                 repos.album.updateAlbumArt(albumId, albumArt)
                 repos.message.onSaveAlbumArtFromUri(true)
                 onSuccess()
@@ -220,10 +228,16 @@ class EditAlbumViewModel @Inject constructor(
         }
     }
 
+    private fun collectNewLocalAlbumArtUris(combo: IAlbumWithTracksCombo<*, *>, context: Context): List<Uri> =
+        combo.trackCombos.map { it.track }.listCoverImages(context)
+            .map { it.uri }
+            .filter { it != combo.album.albumArt?.fullUri }
+
     private suspend fun getAlbumArt(
         mediaStoreImage: MediaStoreImage,
+        context: Context,
         isCurrent: Boolean = false,
-    ) = repos.image.getFullBitmap(mediaStoreImage.fullUri)?.let {
+    ): AlbumArt? = context.getBitmap(mediaStoreImage, 600)?.square()?.let {
         AlbumArt(mediaStoreImage, it, isCurrent)
     }
 }

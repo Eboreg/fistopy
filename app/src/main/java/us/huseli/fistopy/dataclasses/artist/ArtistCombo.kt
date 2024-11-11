@@ -14,8 +14,7 @@ import androidx.room.Embedded
         COALESCE(
             Artist_image_thumbnailUriString,
             Album_albumArt_thumbnailUriString,
-            Album_youtubePlaylist_thumbnail_url,
-            Album_spotifyImage_thumbnailUriString
+            Album_youtubePlaylist_thumbnail_url
         ) AS ArtistCombo_thumbnailUrl
     FROM Artist
         LEFT JOIN AlbumArtist ON Artist_id = AlbumArtist_artistId

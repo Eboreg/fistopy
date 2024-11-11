@@ -70,6 +70,7 @@ android {
     }
 
     defaultConfig {
+        manifestPlaceholders += mapOf("redirectSchemeName" to "klaatu")
         val discogsApiKey = secretsProperties["discogsApiKey"] as String
         val discogsApiSecret = secretsProperties["discogsApiSecret"] as String
         val spotifyClientId = secretsProperties["spotifyClientId"] as String
@@ -77,7 +78,6 @@ android {
         val lastFmApiKey = secretsProperties["lastFmApiKey"] as String
         val lastFmApiSecret = secretsProperties["lastFmApiSecret"] as String
 
-        manifestPlaceholders += mapOf("redirectSchemeName" to "klaatu")
         applicationId = "us.huseli.fistopy"
         minSdk = 26
         targetSdk = 34
@@ -171,12 +171,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.preference.ktx)
 
+    // Coil for async image loading:
+    implementation(libs.coil.compose)
+
     // Compose:
     implementation(platform(libs.androidx.compose.bom))
-
-    // Material:
-    implementation(libs.androidx.material3)
-    implementation(libs.material.icons.extended)
 
     // Compose related:
     implementation(libs.androidx.activity.compose)
@@ -185,64 +184,63 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // Lifecycle:
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    // Compose tracing for debugging/optimization:
+    implementation(libs.androidx.runtime.tracing)
+
+    // FFMPEG:
+    implementation(files("ffmpeg-kit.aar"))
+    implementation(libs.smart.exception.java)
+
+    // Glance for widget:
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+
+    // Gson:
+    implementation(libs.gson)
 
     // Hilt:
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+
+    // Immutable collections:
+    implementation(libs.kotlinx.collections.immutable)
+
+    // Levenshtein string distance:
+    implementation(libs.commons.text)
+
+    // Lifecycle:
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+
+    // Material:
+    implementation(libs.androidx.material3)
+    implementation(libs.material.icons.extended)
 
     // Media3:
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
 
+    // Reorder:
+    implementation(libs.reorderable)
+
     // Room:
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
 
-    // Gson:
-    implementation(libs.gson)
-
-    // Theme etc:
-    implementation(libs.retain.theme)
-
-    // FFMPEG:
-    implementation(files("ffmpeg-kit.aar"))
-    // implementation("com.arthenica:ffmpeg-kit-audio:6.0-2")
-    implementation(libs.smart.exception.java)
+    // SimpleStorage for easier file handling:
+    implementation(libs.storage)
 
     // Splashscreen:
     implementation(libs.androidx.core.splashscreen)
 
-    // Reorder:
-    implementation(libs.reorderable)
-
-    // Levenshtein string distance:
-    implementation(libs.commons.text)
-
-    // SimpleStorage for easier file handling:
-    implementation(libs.storage)
-
-    // XStream to parse XML:
-    implementation(libs.xstream)
-
-    // Glance for widget:
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.glance.material3)
-
-    // Trying out "immutable collection":
-    implementation(libs.kotlinx.collections.immutable)
+    // Theme etc:
+    implementation(libs.retain.theme)
 
     // Track amplitude waveform shit:
     implementation(libs.amplituda)
     implementation(libs.compose.audiowaveform)
 
-    // Compose tracing for debugging/optimization:
-    implementation(libs.androidx.runtime.tracing)
-
-    // Coil for async image loading:
-    // implementation(libs.coil.base)
-    implementation(libs.coil.compose)
+    // XStream to parse XML:
+    implementation(libs.xstream)
 }

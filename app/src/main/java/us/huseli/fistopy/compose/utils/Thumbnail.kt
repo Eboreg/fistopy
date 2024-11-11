@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import us.huseli.fistopy.Logger
 import us.huseli.fistopy.dataclasses.MediaStoreImage
 import us.huseli.fistopy.interfaces.IAlbumArtOwner
 import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
@@ -85,8 +84,6 @@ fun ThumbnailImage(
     }
 
     if (!loadFailed) {
-        Logger.log("Coil", "ThumbnailImage: request.data=${request.data}, modelIdx=$modelIdx, models=$models")
-
         AsyncImage(
             model = request,
             contentDescription = null,

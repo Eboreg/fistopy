@@ -2,8 +2,6 @@ package us.huseli.fistopy
 
 object Constants {
     const val CUSTOM_USER_AGENT = "Fistopy/${BuildConfig.VERSION_NAME} ( https://github.com/Eboreg/fistopy )"
-    const val IMAGE_FULL_MAX_WIDTH_DP = 300
-    const val IMAGE_THUMBNAIL_MAX_WIDTH_DP = 80
     const val IMAGE_THUMBNAIL_MAX_WIDTH_PX = 280
     const val IMAGE_THUMBNAIL_MIN_WIDTH_PX = 200
     const val LASTFM_AUTH_URL =

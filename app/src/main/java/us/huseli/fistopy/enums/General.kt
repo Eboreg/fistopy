@@ -20,6 +20,8 @@ enum class AvailabilityFilter(@StringRes val stringRes: Int) {
 
 enum class ListUpdateStrategy { MERGE, REPLACE }
 
+enum class OnConflictStrategy { USE_THIS, USE_OTHER }
+
 enum class PlaybackState { STOPPED, PLAYING, PAUSED }
 
 enum class RadioStatus { INACTIVE, LOADING, LOADING_MORE, LOADED }
@@ -303,3 +305,5 @@ fun Context.getRegionName(code: String): String = try {
 } catch (_: IllegalArgumentException) {
     code
 }
+
+enum class TrackMergeStrategy { KEEP_LEAST, KEEP_MOST, KEEP_SELF, KEEP_OTHER }

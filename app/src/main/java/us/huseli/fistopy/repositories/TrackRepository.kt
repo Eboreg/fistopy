@@ -10,18 +10,17 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.map
 import linc.com.amplituda.Amplituda
 import linc.com.amplituda.Compress
-import us.huseli.retaintheme.extensions.pruneOrPad
 import us.huseli.fistopy.AbstractScopeHolder
 import us.huseli.fistopy.database.Database
 import us.huseli.fistopy.dataclasses.tag.TagPojo
 import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.track.TrackCombo
+import us.huseli.fistopy.dataclasses.track.TrackUiState
+import us.huseli.fistopy.dataclasses.track.toUiStates
 import us.huseli.fistopy.deleteWithEmptyParentDirs
 import us.huseli.fistopy.enums.AvailabilityFilter
 import us.huseli.fistopy.enums.SortOrder
@@ -29,6 +28,7 @@ import us.huseli.fistopy.enums.TrackSortParameter
 import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.fistopy.isRemote
 import us.huseli.fistopy.waveList
+import us.huseli.retaintheme.extensions.pruneOrPad
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.ceil
@@ -39,7 +39,6 @@ class TrackRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : ILogger, AbstractScopeHolder() {
     private val trackDao = database.trackDao()
-    private val selectedTrackStateIds = mutableMapOf<String, MutableStateFlow<Set<String>>>()
 
     suspend fun addToLibrary(trackIds: Collection<String>) =
         onIOThread { trackDao.setIsInLibrary(true, *trackIds.toTypedArray()) }
@@ -105,25 +104,29 @@ class TrackRepository @Inject constructor(
         }
     }
 
-    fun flowSelectedTrackStateIds(viewModelClass: String): StateFlow<Set<String>> =
-        mutableFlowSelectedTrackStateIds(viewModelClass).asStateFlow()
-
     fun flowTagPojos(availabilityFilter: AvailabilityFilter): Flow<List<TagPojo>> =
         trackDao.flowTagPojos(availabilityFilter)
 
-    fun flowTrackCombos(
+    fun flowTrackCombosByAlbumId(albumId: String): Flow<List<TrackCombo>> = trackDao.flowTrackCombosByAlbumId(albumId)
+
+    fun flowTrackUiStates(
         sortParameter: TrackSortParameter,
         sortOrder: SortOrder,
         searchTerm: String,
         tagNames: List<String>,
         availabilityFilter: AvailabilityFilter,
-    ): Flow<List<TrackCombo>> =
-        trackDao.flowTrackCombos(sortParameter, sortOrder, searchTerm, tagNames, availabilityFilter)
+    ): Flow<ImmutableList<TrackUiState>> = trackDao
+        .flowTrackCombos(
+            sortParameter = sortParameter,
+            sortOrder = sortOrder,
+            searchTerm = searchTerm,
+            tagNames = tagNames,
+            availabilityFilter = availabilityFilter,
+        )
+        .map { it.toUiStates() }
 
-    fun flowTrackCombosByAlbumId(albumId: String): Flow<List<TrackCombo>> = trackDao.flowTrackCombosByAlbumId(albumId)
-
-    fun flowTrackCombosByArtist(artistId: String): Flow<List<TrackCombo>> =
-        trackDao.flowTrackCombosByArtist(artistId)
+    fun flowTrackUiStatesByArtist(artistId: String): Flow<ImmutableList<TrackUiState>> =
+        trackDao.flowTrackCombosByArtist(artistId).map { it.toUiStates() }
 
     suspend fun getLibraryTrackCount(): Int = onIOThread { trackDao.getLibraryTrackCount() }
 
@@ -162,18 +165,12 @@ class TrackRepository @Inject constructor(
     suspend fun listTrackIdsByAlbumId(albumIds: Collection<String>): ImmutableList<String> =
         onIOThread { trackDao.listTrackIdsByAlbumId(*albumIds.toTypedArray()).toImmutableList() }
 
-    suspend fun listTrackLocalUris(): List<Uri> = onIOThread { trackDao.listLocalUris().map { it.toUri() } }
-
     suspend fun listTrackIdsByArtistId(artistId: String): ImmutableList<String> =
         onIOThread { trackDao.listTrackIdsByArtistId(artistId).toImmutableList() }
 
-    suspend fun listTracksByAlbumId(albumId: String): List<Track> = onIOThread { trackDao.listTracksByAlbumId(albumId) }
+    suspend fun listTrackLocalUris(): List<Uri> = onIOThread { trackDao.listLocalUris().map { it.toUri() } }
 
-    fun selectTracks(selectionKey: String, stateIds: Iterable<String>) {
-        mutableFlowSelectedTrackStateIds(selectionKey).also { flow ->
-            flow.value += stateIds.filter { id -> !flow.value.contains(id) }
-        }
-    }
+    suspend fun listTracksByAlbumId(albumId: String): List<Track> = onIOThread { trackDao.listTracksByAlbumId(albumId) }
 
     suspend fun setAlbumTracks(albumId: String, tracks: Collection<Track>) = onIOThread {
         trackDao.setAlbumTracks(albumId = albumId, tracks = tracks)
@@ -185,37 +182,9 @@ class TrackRepository @Inject constructor(
     suspend fun setTrackSpotifyId(trackId: String, spotifyId: String) =
         onIOThread { trackDao.setTrackSpotifyId(trackId, spotifyId) }
 
-    fun toggleTrackSelected(selectionKey: String, stateId: String): Boolean {
-        return mutableFlowSelectedTrackStateIds(selectionKey).let { flow ->
-            if (flow.value.contains(stateId)) {
-                flow.value -= stateId
-                false
-            } else {
-                flow.value += stateId
-                true
-            }
-        }
-    }
-
-    fun unselectAllTracks(selectionKey: String) {
-        mutableFlowSelectedTrackStateIds(selectionKey).value = emptySet()
-    }
-
-    fun unselectTracks(selectionKey: String, ids: Collection<String>) {
-        mutableFlowSelectedTrackStateIds(selectionKey).value -= ids
-    }
-
     suspend fun upsertTrack(track: Track) = onIOThread { trackDao.upsertTracks(track) }
 
     suspend fun upsertTracks(tracks: Collection<Track>) {
         if (tracks.isNotEmpty()) onIOThread { trackDao.upsertTracks(*tracks.toTypedArray()) }
     }
-
-
-    /** PRIVATE METHODS ***********************************************************************************************/
-
-    private fun mutableFlowSelectedTrackStateIds(viewModelClass: String): MutableStateFlow<Set<String>> =
-        selectedTrackStateIds[viewModelClass] ?: MutableStateFlow<Set<String>>(emptySet()).also {
-            selectedTrackStateIds[viewModelClass] = it
-        }
 }

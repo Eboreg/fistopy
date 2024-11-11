@@ -12,7 +12,7 @@ import us.huseli.fistopy.interfaces.IAlbumArtOwner
 import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
 import us.huseli.fistopy.interfaces.ILogger
 
-abstract class AbstractThumbnailMapper<T : Any> : Mapper<T, String>, ILogger {
+abstract class AbstractThumbnailMapper<T : Any> : Mapper<T, String> {
     abstract fun getFullImageUrl(data: T): String?
     abstract fun getThumbnailUrl(data: T): String?
 
@@ -24,12 +24,8 @@ abstract class AbstractThumbnailMapper<T : Any> : Mapper<T, String>, ILogger {
     }
 
     override fun map(data: T, options: Options): String? {
-        val url =
-            if (shouldGetFullImage(options)) getFullImageUrl(data) ?: getThumbnailUrl(data)
-            else getThumbnailUrl(data) ?: getFullImageUrl(data)
-
-        log("Coil", "${javaClass.simpleName} Using $url")
-        return url
+        return if (shouldGetFullImage(options)) getFullImageUrl(data) ?: getThumbnailUrl(data)
+        else getThumbnailUrl(data) ?: getFullImageUrl(data)
     }
 }
 
@@ -47,23 +43,28 @@ class MediaStoreImageMapper : AbstractThumbnailMapper<MediaStoreImage>() {
 
 
 class ThumbnailInterceptor : Interceptor, ILogger {
-    private fun getModel(data: Any, size: Size): Any? {
-        return when (data) {
-            is MediaStoreImage -> if (shouldGetFullImage(size)) data.fullUriString else data.thumbnailUriString
-            is IAlbumArtOwner ->
+    private fun getModel(data: Any, size: Size): Any {
+        var url: String? = null
+
+        if (data is MediaStoreImage) {
+            url = if (shouldGetFullImage(size)) data.fullUriString else data.thumbnailUriString
+        }
+        if (data is IAlbumArtOwner) {
+            url =
                 if (shouldGetFullImage(size)) data.fullImageUrl ?: data.thumbnailUrl
                 else data.thumbnailUrl ?: data.fullImageUrl
-            is IHasMusicBrainzIds -> {
-                val px = maxOf(
-                    size.height.pxOrElse { 250 }.roundToClosest(listOf(250, 500, 1200)),
-                    size.width.pxOrElse { 250 }.roundToClosest(listOf(250, 500, 1200)),
-                )
-
-                data.musicBrainzReleaseId?.let { "https://coverartarchive.org/release/$it/front-$px" }
-                    ?: data.musicBrainzReleaseGroupId?.let { "https://coverartarchive.org/release-group/$it/front-$px" }
-            }
-            else -> data
         }
+        if (data is IHasMusicBrainzIds && url == null) {
+            val px = maxOf(
+                size.height.pxOrElse { 250 }.roundToClosest(listOf(250, 500, 1200)),
+                size.width.pxOrElse { 250 }.roundToClosest(listOf(250, 500, 1200)),
+            )
+
+            url = data.musicBrainzReleaseId?.let { "https://coverartarchive.org/release/$it/front-$px" }
+                ?: data.musicBrainzReleaseGroupId?.let { "https://coverartarchive.org/release-group/$it/front-$px" }
+        }
+
+        return url ?: data
     }
 
     private fun shouldGetFullImage(size: Size): Boolean {

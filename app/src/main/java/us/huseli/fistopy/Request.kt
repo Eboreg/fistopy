@@ -1,7 +1,5 @@
 package us.huseli.fistopy
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -118,8 +116,6 @@ data class Request(
             log("Request", message)
         }
     }
-
-    suspend fun getBitmap(): Bitmap? = getInputStream().use { BitmapFactory.decodeStream(it) }.also { finish() }
 
     suspend fun getJson(): Map<String, *> = getInputStream().use {
         gson.fromJson(it.bufferedReader(), jsonResponseType) ?: emptyMap<String, Any>()

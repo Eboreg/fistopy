@@ -5,7 +5,6 @@ import us.huseli.fistopy.dataclasses.artist.UnsavedAlbumArtistCredit
 
 data class LastFmArtist(
     val mbid: String,
-    val url: String,
     @SerializedName("playcount") val playCount: String? = null,
     val name: String,
     val image: List<LastFmImage>? = null,

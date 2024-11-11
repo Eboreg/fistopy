@@ -7,10 +7,10 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
-import us.huseli.retaintheme.extensions.launchOnIOThread
 import us.huseli.fistopy.dataclasses.album.AlbumUiState
 import us.huseli.fistopy.managers.Managers
 import us.huseli.fistopy.repositories.Repositories
+import us.huseli.retaintheme.extensions.launchOnIOThread
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,7 +21,7 @@ class DeleteAlbumsViewModel @Inject constructor(
     private val _albumIds = MutableStateFlow<List<String>>(emptyList())
 
     val albumUiStates: StateFlow<ImmutableList<AlbumUiState>> = _albumIds.map { albumIds ->
-        repos.album.listAlbumCombos(albumIds).map { it.toUiState() }.toImmutableList()
+        repos.album.listAlbumUiStates(albumIds).toImmutableList()
     }.stateWhileSubscribed(persistentListOf())
     val isImportingLocalMedia = repos.localMedia.isImportingLocalMedia
 

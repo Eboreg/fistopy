@@ -3,14 +3,11 @@ package us.huseli.fistopy
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import us.huseli.fistopy.dataclasses.album.Album
-import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
-import us.huseli.fistopy.dataclasses.artist.TrackArtistCredit
 import us.huseli.fistopy.dataclasses.radio.RadioCombo
 import us.huseli.fistopy.dataclasses.radio.RadioTrackCombo
 import us.huseli.fistopy.dataclasses.spotify.SpotifyTrack
+import us.huseli.fistopy.dataclasses.track.ISavedTrackCombo
 import us.huseli.fistopy.dataclasses.track.QueueTrackCombo
-import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.enums.RadioType
 import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.fistopy.repositories.Repositories
@@ -59,25 +56,16 @@ class RadioTrackChannel(val radio: RadioCombo, private val repos: Repositories) 
         combo.spotifyId?.also { usedSpotifyTrackIds.add(it) }
     }
 
-    private suspend fun getQueueTrackCombo(
-        track: Track,
-        album: Album? = null,
-        albumArtists: Collection<AlbumArtistCredit>,
-        trackArtists: Collection<TrackArtistCredit>,
-    ): QueueTrackCombo? {
-        val newTrack = repos.youtube.ensureTrackPlayUri(
-            track = track,
-            albumArtists = albumArtists,
-            trackArtists = trackArtists,
-        ) { repos.track.upsertTrack(it) }
+    private suspend fun getQueueTrackCombo(trackCombo: ISavedTrackCombo<*>): QueueTrackCombo? {
+        val newTrack = repos.youtube.ensureTrackPlayUri(trackCombo) { repos.track.upsertTrack(it) }
 
         return newTrack.playUri?.let { uri ->
             QueueTrackCombo(
                 track = newTrack,
                 uri = uri,
-                album = album,
-                albumArtists = albumArtists.toList(),
-                trackArtists = trackArtists.toList(),
+                album = trackCombo.album,
+                albumArtists = trackCombo.albumArtists,
+                trackArtists = trackCombo.trackArtists,
             )
         }
     }
@@ -96,12 +84,7 @@ class RadioTrackChannel(val radio: RadioCombo, private val repos: Repositories) 
             if (combos.isEmpty()) return null
 
             for (combo in combos) {
-                getQueueTrackCombo(
-                    track = combo.track,
-                    album = combo.album,
-                    albumArtists = combo.albumArtists,
-                    trackArtists = combo.trackArtists,
-                )?.also { return it }
+                getQueueTrackCombo(combo)?.also { return it }
 
                 usedTrackIds.add(combo.track.trackId)
             }
@@ -122,11 +105,8 @@ class RadioTrackChannel(val radio: RadioCombo, private val repos: Repositories) 
             for (trackCombo in repos.track.listRandomLibraryTrackCombos(min(limit * 4, trackCount))) {
                 if (trackCombo.track.spotifyId != null) spotifyTrackIds.add(trackCombo.track.spotifyId)
                 else {
-                    val spotifyTrack = repos.spotify.matchTrack(
-                        track = trackCombo.track,
-                        album = trackCombo.album,
-                        artists = trackCombo.trackArtists.plus(trackCombo.albumArtists),
-                    )
+                    val spotifyTrack = repos.spotify.matchTrack(trackCombo)?.externalData
+
                     if (spotifyTrack != null) {
                         spotifyTrackIds.add(spotifyTrack.id)
                         repos.track.setTrackSpotifyId(trackCombo.track.trackId, spotifyTrack.id)
@@ -143,9 +123,9 @@ class RadioTrackChannel(val radio: RadioCombo, private val repos: Repositories) 
     private fun nextIsLibraryTrack(): Boolean = Random.nextFloat() >= repos.settings.libraryRadioNovelty.value
 
     private suspend fun spotifyTrackToQueueTrackCombo(spotifyTrack: SpotifyTrack): QueueTrackCombo? {
-        val unsavedAlbum = spotifyTrack.album.toAlbum(isLocal = false, isInLibrary = false)
-        val trackCombo = spotifyTrack.toTrackCombo(isInLibrary = false, album = unsavedAlbum)
-        val track = repos.youtube.getBestTrackMatch(track = trackCombo.track)
+        val unsavedAlbum = spotifyTrack.album.toAlbum()
+        val trackCombo = spotifyTrack.toTrackCombo(album = unsavedAlbum)
+        val track = repos.youtube.getBestTrackMatch(trackCombo)
         val playUri = track?.playUri
 
         if (track != null && playUri != null) {
@@ -180,11 +160,8 @@ class RadioTrackChannel(val radio: RadioCombo, private val repos: Repositories) 
                             ?.let { repos.spotify.trackRecommendationsChannelByAlbumCombo(it) }
                     }
                     RadioType.TRACK -> radio.track?.let { track ->
-                        val albumCombo = track.albumId?.let { repos.album.getAlbumCombo(it) }
-                        val artists = repos.artist.listArtistsByTrackId(track.trackId)
-                            .plus(albumCombo?.artists ?: emptyList())
-
-                        repos.spotify.trackRecommendationsChannelByTrack(track, radio.album, artists)
+                        val trackCombo = repos.track.getTrackComboById(track.trackId)
+                        trackCombo?.let { repos.spotify.trackRecommendationsChannelByTrack(it) }
                     }
                 }
             } else repos.spotify.trackRecommendationsChannel(usedSpotifyTrackIds)

@@ -1,18 +1,16 @@
 package us.huseli.fistopy.externalcontent.holders
 
 import kotlinx.coroutines.channels.Channel
+import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.ImportableAlbumUiState
-import us.huseli.fistopy.dataclasses.album.UnsavedAlbumWithTracksCombo
-import us.huseli.fistopy.interfaces.IExternalAlbum
+import us.huseli.fistopy.interfaces.IStringIdItem
 
-abstract class AbstractAlbumImportHolder<T : IExternalAlbum> : AbstractImportHolder<ImportableAlbumUiState>() {
-    private val _externalAlbums = mutableMapOf<String, T>()
+abstract class AbstractAlbumImportHolder<T : IStringIdItem> : AbstractImportHolder<ImportableAlbumUiState>() {
+    protected val externalAlbums = mutableMapOf<String, ExternalAlbumWithTracksCombo<T>>()
 
-    abstract suspend fun convertToAlbumWithTracks(externalAlbum: T, albumId: String): UnsavedAlbumWithTracksCombo?
-    abstract fun getExternalAlbumChannel(): Channel<T>
+    abstract fun getExternalAlbumChannel(): Channel<ExternalAlbumWithTracksCombo<T>>
 
-    suspend fun convertToAlbumWithTracks(state: ImportableAlbumUiState): UnsavedAlbumWithTracksCombo? =
-        _externalAlbums[state.id]?.let { convertToAlbumWithTracks(it, state.id) }
+    open suspend fun getAlbumWithTracks(albumId: String): ExternalAlbumWithTracksCombo<*>? = externalAlbums[albumId]
 
     fun updateItemId(oldId: String, newId: String) {
         if (_selectedItemIds.value.contains(oldId)) {
@@ -31,11 +29,9 @@ abstract class AbstractAlbumImportHolder<T : IExternalAlbum> : AbstractImportHol
     override fun getResultChannel() = Channel<ImportableAlbumUiState>().also { channel ->
         launchOnIOThread {
             for (externalAlbum in getExternalAlbumChannel()) {
-                val state = externalAlbum
-                    .toAlbumCombo(isLocal = false, isInLibrary = false)
-                    .toImportableUiState(playCount = externalAlbum.playCount)
+                val state = externalAlbum.toImportableUiState()
 
-                _externalAlbums[state.id] = externalAlbum
+                externalAlbums[state.id] = externalAlbum
                 channel.send(state)
             }
         }
@@ -57,7 +53,7 @@ abstract class AbstractAlbumImportHolder<T : IExternalAlbum> : AbstractImportHol
         _selectedItemIds.value -= itemId
         _items.value.indexOfFirst { it.id == itemId }.takeIf { it >= 0 }?.also { index ->
             _items.value = _items.value.toMutableList().apply {
-                set(index, get(index).copy(isSaved = true))
+                set(index, get(index).copy(isImported = true))
             }
         }
     }

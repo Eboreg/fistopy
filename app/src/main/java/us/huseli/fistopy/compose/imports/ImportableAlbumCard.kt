@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
-import us.huseli.retaintheme.ui.theme.LocalBasicColors
 import us.huseli.fistopy.R
 import us.huseli.fistopy.compose.FistopyTheme
 import us.huseli.fistopy.compose.utils.ItemListCardWithThumbnail
@@ -26,6 +25,7 @@ import us.huseli.fistopy.externalcontent.ImportBackend
 import us.huseli.fistopy.pluralStringResource
 import us.huseli.fistopy.stringResource
 import us.huseli.fistopy.umlautify
+import us.huseli.retaintheme.ui.theme.LocalBasicColors
 
 @Composable
 fun ImportableAlbumCard(
@@ -34,18 +34,18 @@ fun ImportableAlbumCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val albumArtUrl = if (!state.isSaved && state.importError == null) state.thumbnailUrl else null
+    val albumArtUrl = if (!state.isImported && state.importError == null) state.thumbnailUrl else null
     val uriHandler = LocalUriHandler.current
 
     ItemListCardWithThumbnail(
         thumbnailModel = albumArtUrl,
         thumbnailPlaceholder = when {
-            state.isSaved -> Icons.Sharp.CheckCircle
+            state.isImported -> Icons.Sharp.CheckCircle
             state.importError != null -> Icons.Sharp.Cancel
             else -> Icons.Sharp.Album
         },
         thumbnailPlaceholderTint = when {
-            state.isSaved -> LocalBasicColors.current.Green
+            state.isImported -> LocalBasicColors.current.Green
             state.importError != null -> LocalBasicColors.current.Red
             else -> null
         },
@@ -71,7 +71,7 @@ fun ImportableAlbumCard(
                     style = FistopyTheme.bodyStyles.primarySmall,
                 )
             }
-            if (state.isSaved) {
+            if (state.isImported) {
                 Badge(
                     containerColor = LocalBasicColors.current.Green,
                     content = { Text(text = stringResource(R.string.imported)) },

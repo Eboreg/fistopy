@@ -15,7 +15,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.StateFlow
-import us.huseli.retaintheme.extensions.nullIfBlank
 import us.huseli.fistopy.AlbumDownloadTask
 import us.huseli.fistopy.R
 import us.huseli.fistopy.compose.FistopyTheme
@@ -25,6 +24,7 @@ import us.huseli.fistopy.dataclasses.album.IAlbumUiState
 import us.huseli.fistopy.pluralStringResource
 import us.huseli.fistopy.stringResource
 import us.huseli.fistopy.umlautify
+import us.huseli.retaintheme.extensions.nullIfBlank
 
 @Composable
 fun AlbumListCard(
@@ -84,7 +84,7 @@ fun AlbumListCard(
                 Column(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxHeight(),
-                    content = { AlbumSmallIcons(isLocal = state.isLocal, isOnYoutube = state.isOnYoutube) },
+                    content = { AlbumSmallIcons(isLocal = state.isLocal, isOnYoutube = state.youtubeWebUrl != null) },
                 )
 
                 AlbumBottomSheetWithButton(uiState = state)

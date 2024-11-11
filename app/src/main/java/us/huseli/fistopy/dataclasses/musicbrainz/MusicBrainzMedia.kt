@@ -1,47 +1,44 @@
 package us.huseli.fistopy.dataclasses.musicbrainz
 
 import com.google.gson.annotations.SerializedName
-import us.huseli.fistopy.dataclasses.album.IAlbum
+import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
+import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
+import us.huseli.fistopy.dataclasses.track.ExternalTrackCombo
 import us.huseli.fistopy.dataclasses.track.Track
-import us.huseli.fistopy.dataclasses.track.UnsavedTrackCombo
-
-abstract class AbstractMusicBrainzMedia {
-    abstract val format: String?
-    abstract val trackCount: Int
-}
-
-data class MusicBrainzSimplifiedMedia(
-    override val format: String?,
-    @SerializedName("track-count")
-    override val trackCount: Int,
-) : AbstractMusicBrainzMedia()
 
 data class MusicBrainzMedia(
-    override val format: String?,
+    val format: String?,
     @SerializedName("track-count")
-    override val trackCount: Int,
+    val trackCount: Int,
     val position: Int,
     @SerializedName("track-offset")
     val trackOffset: Int,
     val tracks: List<MusicBrainzTrack>,
-) : AbstractMusicBrainzMedia()
+)
 
 fun Iterable<MusicBrainzMedia>.toTrackCombos(
     isInLibrary: Boolean,
-    album: IAlbum? = null,
-): List<UnsavedTrackCombo> = flatMap { medium ->
+    album: UnsavedAlbum? = null,
+    albumArtists: List<IAlbumArtistCredit>? = null,
+): List<ExternalTrackCombo<MusicBrainzTrack>> = flatMap { medium ->
     medium.tracks.map { mbTrack ->
         val track = Track(
             title = mbTrack.title,
-            isInLibrary = isInLibrary,
             albumPosition = mbTrack.position,
             discNumber = medium.position,
             year = mbTrack.year,
             musicBrainzId = mbTrack.recording.id,
             albumId = album?.albumId,
+            isInLibrary = isInLibrary,
         )
-        val artists = mbTrack.artistCredit.toNativeTrackArtists(trackId = track.trackId)
+        val trackArtists = mbTrack.artistCredit.toNativeTrackArtists(track.trackId)
 
-        UnsavedTrackCombo(track = track, trackArtists = artists, album = album)
+        ExternalTrackCombo(
+            externalData = mbTrack,
+            album = album,
+            trackArtists = trackArtists,
+            albumArtists = albumArtists ?: emptyList(),
+            track = track,
+        )
     }
 }

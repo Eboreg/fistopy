@@ -37,8 +37,8 @@ import us.huseli.fistopy.compose.utils.HorizontalCardList
 import us.huseli.fistopy.compose.utils.ItemListCardWithThumbnail
 import us.huseli.fistopy.compose.utils.SmallOutlinedButton
 import us.huseli.fistopy.compose.utils.Thumbnail
+import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.enums.AlbumType
-import us.huseli.fistopy.interfaces.IExternalAlbum
 import us.huseli.fistopy.stringResource
 import us.huseli.fistopy.umlautify
 import us.huseli.retaintheme.extensions.nullIfBlank
@@ -68,8 +68,8 @@ fun OtherArtistAlbumsHeader(
 @OptIn(ExperimentalFoundationApi::class)
 fun LazyListScope.OtherArtistAlbumsList(
     isExpanded: Boolean,
-    albums: ImmutableList<IExternalAlbum>,
-    preview: ImmutableList<IExternalAlbum>,
+    albums: ImmutableList<IAlbum>,
+    preview: ImmutableList<IAlbum>,
     albumTypes: ImmutableList<AlbumType>,
     onClick: (String) -> Unit,
     onAlbumTypeClick: (AlbumType) -> Unit,
@@ -156,7 +156,7 @@ fun OtherArtistAlbumsAlbumTypeSelection(
 
 @Composable
 fun OtherArtistAlbumsPreview(
-    albums: ImmutableList<IExternalAlbum>,
+    albums: ImmutableList<IAlbum>,
     onClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -184,8 +184,8 @@ fun OtherArtistAlbumsPreview(
 @Suppress("FunctionName")
 fun LazyGridScope.OtherArtistAlbumsGrid(
     isExpanded: Boolean,
-    albums: ImmutableList<IExternalAlbum>,
-    preview: ImmutableList<IExternalAlbum>,
+    albums: ImmutableList<IAlbum>,
+    preview: ImmutableList<IAlbum>,
     albumTypes: ImmutableList<AlbumType>,
     onClick: (String) -> Unit,
     onAlbumTypeClick: (AlbumType) -> Unit,

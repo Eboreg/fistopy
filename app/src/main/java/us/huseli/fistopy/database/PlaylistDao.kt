@@ -56,11 +56,14 @@ abstract class PlaylistDao {
     @Query("SELECT * FROM PlaylistTrackCombo WHERE Playlist_playlistId = :playlistId")
     abstract fun flowTrackCombosByPlaylistId(playlistId: String): Flow<List<PlaylistTrackCombo>>
 
+    @Query("SELECT COUNT(*) FROM PlaylistTrack WHERE PlaylistTrack_trackId IN (:trackIds) AND PlaylistTrack_playlistId = :playlistId")
+    abstract suspend fun getDuplicateTrackCount(playlistId: String, trackIds: Collection<String>): Int
+
     @Query("SELECT * FROM Playlist WHERE Playlist_playlistId = :playlistId")
     abstract suspend fun getPlaylist(playlistId: String): Playlist?
 
-    @Query("SELECT COUNT(*) FROM PlaylistTrack WHERE PlaylistTrack_trackId IN (:trackIds) AND PlaylistTrack_playlistId = :playlistId")
-    abstract suspend fun getDuplicateTrackCount(playlistId: String, trackIds: Collection<String>): Int
+    @Query("SELECT Playlist_name FROM Playlist WHERE Playlist_playlistId = :playlistId")
+    abstract suspend fun getPlaylistName(playlistId: String): String?
 
     @Insert
     abstract suspend fun insertPlaylists(vararg playlists: Playlist)

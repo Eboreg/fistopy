@@ -194,11 +194,11 @@ abstract class AlbumDao {
 
     @Query(
         """
-        SELECT DISTINCT Tag.* FROM Tag JOIN AlbumTag ON Tag_name = AlbumTag_tagName
+        SELECT DISTINCT Tag.Tag_name FROM Tag JOIN AlbumTag ON Tag_name = AlbumTag_tagName
         WHERE AlbumTag_albumId = :albumId
         """
     )
-    abstract fun flowTagsByAlbumId(albumId: String): Flow<List<Tag>>
+    abstract fun flowTagNamesByAlbumId(albumId: String): Flow<List<String>>
 
     @Query("SELECT * FROM Album WHERE Album_albumId = :albumId")
     abstract suspend fun getAlbum(albumId: String): Album?
@@ -259,12 +259,6 @@ abstract class AlbumDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     abstract suspend fun insertTags(vararg tags: Tag)
 
-    @Query("SELECT Album_albumArt_fullUriString FROM Album WHERE Album_albumArt_fullUriString IS NOT NULL")
-    abstract suspend fun listAlbumArtFullUris(): List<String>
-
-    @Query("SELECT Album_albumArt_thumbnailUriString FROM Album WHERE Album_albumArt_thumbnailUriString IS NOT NULL")
-    abstract suspend fun listAlbumArtThumbnailUris(): List<String>
-
     @Transaction
     @Query("SELECT * FROM AlbumCombo")
     abstract suspend fun listAlbumCombos(): List<AlbumCombo>
@@ -290,8 +284,8 @@ abstract class AlbumDao {
     @Query("SELECT Album_spotifyId FROM Album WHERE Album_isInLibrary = 1 AND Album_spotifyId IS NOT NULL")
     abstract suspend fun listSpotifyAlbumIds(): List<String>
 
-    @Query("SELECT * FROM Tag")
-    abstract suspend fun listTags(): List<Tag>
+    @Query("SELECT Tag_name FROM Tag")
+    abstract suspend fun listTagNames(): List<String>
 
     @Query("SELECT DISTINCT Tag.* FROM Tag JOIN AlbumTag ON Tag_name = AlbumTag_tagName WHERE AlbumTag_albumId = :albumId")
     abstract suspend fun listTags(albumId: String): List<Tag>

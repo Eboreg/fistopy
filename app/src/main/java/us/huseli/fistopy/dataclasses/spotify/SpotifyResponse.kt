@@ -32,8 +32,6 @@ data class SpotifyTrackRecommendationResponse(
     )
 }
 
-data class SpotifyAlbumsResponse(val albums: List<SpotifyAlbum>)
-
 data class SpotifyArtistsResponse(val artists: List<SpotifyArtist>)
 
 data class SpotifyTrackAudioFeaturesResponse(

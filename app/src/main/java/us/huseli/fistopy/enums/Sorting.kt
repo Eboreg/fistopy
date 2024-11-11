@@ -57,7 +57,7 @@ enum class ArtistSortParameter : SortParameter<ArtistCombo> {
 
 enum class SortOrder(val sql: String) { ASCENDING("ASC"), DESCENDING("DESC") }
 
-enum class TrackSortParameter : SortParameter<ITrackCombo> {
+enum class TrackSortParameter : SortParameter<ITrackCombo<*>> {
     TITLE {
         override val stringRes = R.string.title
         override fun sql(sortOrder: SortOrder): String = "LOWER(Track_title) ${sortOrder.sql}"
