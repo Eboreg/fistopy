@@ -27,7 +27,7 @@ kotlin {
 
 android {
     namespace = "us.huseli.fistopy"
-    compileSdk = 34
+    compileSdk = 35
 
     applicationVariants.all {
         outputs.all {
@@ -161,10 +161,6 @@ android {
             versionNameSuffix = "-nosentry"
         }
     }
-}
-
-composeCompiler {
-    enableStrongSkippingMode = true
 }
 
 dependencies {
