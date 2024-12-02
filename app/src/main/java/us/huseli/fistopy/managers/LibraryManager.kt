@@ -39,7 +39,6 @@ import us.huseli.fistopy.dataclasses.track.ITrackCombo
 import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.track.TrackCombo
 import us.huseli.fistopy.dataclasses.track.listCoverImages
-import us.huseli.fistopy.enums.ListUpdateStrategy
 import us.huseli.fistopy.enums.TrackMergeStrategy
 import us.huseli.fistopy.getBitmap
 import us.huseli.fistopy.getSquareSize
@@ -136,6 +135,7 @@ class LibraryManager @Inject constructor(
             repos.playlist.deleteOrphanPlaylistTracks()
             repos.track.deleteTempTracks()
             repos.album.deleteTempAlbums()
+            repos.album.deleteHiddenNonLocalAlbums()
             // repos.artist.deleteOrphanArtists()
         }
     }
@@ -251,33 +251,18 @@ class LibraryManager @Inject constructor(
                 val existingAlbumCombos = repos.album.listAlbumCombos()
                 val existingTrackUris = repos.track.listTrackLocalUris()
 
-                for (localCombo in repos.localMedia.importableAlbumsChannel(localMusicDirectory, existingTrackUris)) {
-                    val existingCombo = existingAlbumCombos.find {
-                        (it.album.title == localCombo.album.title && it.artists.joined() == localCombo.artists.joined()) ||
-                            (it.album.musicBrainzReleaseId != null && it.album.musicBrainzReleaseId == localCombo.album.musicBrainzReleaseId)
-                    }
-                    val combo = if (existingCombo != null) {
-                        localCombo.withUpdates {
-                            updateAlbum {
-                                it.copy(
-                                    albumId = existingCombo.album.albumId,
-                                    musicBrainzReleaseGroupId = it.musicBrainzReleaseGroupId
-                                        ?: existingCombo.album.musicBrainzReleaseGroupId,
-                                    musicBrainzReleaseId = it.musicBrainzReleaseId
-                                        ?: existingCombo.album.musicBrainzReleaseId,
-                                    year = it.year ?: existingCombo.album.year,
-                                )
-                            }
-                            mergeArtists(existingCombo.artists, ListUpdateStrategy.MERGE)
-                        }
-                    } else localCombo
-                    val albumArt = getBestNewLocalAlbumArt(combo.trackCombos)
+                for (localCombo in repos.localMedia.importableAlbumsChannel(
+                    treeDocumentFile = localMusicDirectory,
+                    existingTrackUris = existingTrackUris,
+                    existingAlbumCombos = existingAlbumCombos,
+                )) {
+                    val albumArt = getBestNewLocalAlbumArt(localCombo.trackCombos)
                         ?: repos.musicBrainz.getCoverArtArchiveImage(
-                            combo.album.musicBrainzReleaseId,
-                            combo.album.musicBrainzReleaseGroupId
+                            localCombo.album.musicBrainzReleaseId,
+                            localCombo.album.musicBrainzReleaseGroupId
                         )?.toMediaStoreImage()
 
-                    upsertAlbumWithTracks(combo.withUpdates { setAlbumArt(albumArt) })
+                    upsertAlbumWithTracks(localCombo.withUpdates { setAlbumArt(albumArt) })
                 }
 
                 repos.localMedia.setIsImporting(false)

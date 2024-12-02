@@ -1,0 +1,589 @@
+kotlin version: 2.0.0
+error message: org.jetbrains.kotlin.backend.common.BackendException: Backend Internal error: Exception during IR lowering
+File being compiled: /home/klaatu/kod/ThouCylinder/app/src/main/java/us/huseli/fistopy/managers/LibraryManager.kt
+The root cause java.lang.RuntimeException was thrown at: org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:50)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException(CodegenUtil.kt:253)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException$default(CodegenUtil.kt:236)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:65)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:52)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:38)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:29)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:16)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:62)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:371)
+	at org.jetbrains.kotlin.codegen.CodegenFactory.generateModule(CodegenFactory.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateModuleInFrontendIRMode(JvmIrCodegenFactory.kt:433)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.generateCodeFromIr(jvmCompilerPipeline.kt:241)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.compileModulesUsingFrontendIrAndLightTree(jvmCompilerPipeline.kt:140)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:155)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:50)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:104)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:48)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:453)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:62)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:506)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:423)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:301)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:129)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:676)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:92)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1661)
+	at jdk.internal.reflect.GeneratedMethodAccessor96.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN name:ensureTrackMetadataAsync visibility:public modality:FINAL <> ($this:us.huseli.fistopy.managers.LibraryManager, trackId:kotlin.String) returnType:kotlin.Unit
+  $this: VALUE_PARAMETER name:<this> type:us.huseli.fistopy.managers.LibraryManager
+  VALUE_PARAMETER name:trackId index:0 type:kotlin.String
+  BLOCK_BODY
+    COMPOSITE type=kotlin.Unit origin=null
+      CALL 'protected final fun launchOnIOThread (block: @[ExtensionFunctionType] kotlin.coroutines.SuspendFunction1<kotlinx.coroutines.CoroutineScope, kotlin.Unit>): kotlinx.coroutines.Job [fake_override] declared in us.huseli.fistopy.managers.LibraryManager' type=kotlinx.coroutines.Job origin=null
+        $this: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync' type=us.huseli.fistopy.managers.LibraryManager origin=null
+        block: BLOCK type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+          CLASS SUSPEND_LAMBDA CLASS name:<no name provided> modality:FINAL visibility:public/*package*/ superTypes:[kotlin.coroutines.jvm.internal.SuspendLambda; kotlin.jvm.functions.Function2<kotlinx.coroutines.CoroutineScope, kotlin.coroutines.Continuation<kotlin.Unit>?, kotlin.Any?>]
+            $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>
+            FIELD name:label type:kotlin.Int visibility:public/*package*/
+            CONSTRUCTOR SUSPEND_LAMBDA visibility:public/*package*/ <> (this$0:us.huseli.fistopy.managers.LibraryManager, $trackId:kotlin.String, $completion:kotlin.coroutines.Continuation<us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>>?) returnType:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> [primary]
+              VALUE_PARAMETER BOUND_RECEIVER_PARAMETER name:this$0 index:0 type:us.huseli.fistopy.managers.LibraryManager
+              VALUE_PARAMETER BOUND_VALUE_PARAMETER name:$trackId index:1 type:kotlin.String
+              VALUE_PARAMETER name:$completion index:2 type:kotlin.coroutines.Continuation<us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>>?
+              BLOCK_BODY
+                SET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:us.huseli.fistopy.managers.LibraryManager visibility:public/*package*/ [final]' type=kotlin.Unit origin=INITIALIZER_OF_FIELD_FOR_CAPTURED_VALUE
+                  receiver: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                  value: GET_VAR 'this$0: us.huseli.fistopy.managers.LibraryManager declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.<init>' type=us.huseli.fistopy.managers.LibraryManager origin=null
+                SET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:$trackId type:kotlin.String visibility:public/*package*/ [final]' type=kotlin.Unit origin=INITIALIZER_OF_FIELD_FOR_CAPTURED_VALUE
+                  receiver: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                  value: GET_VAR '$trackId: kotlin.String declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.<init>' type=kotlin.String origin=null
+                DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> (arity: kotlin.Int, $completion: kotlin.coroutines.Continuation<kotlin.Any?>?) declared in kotlin.coroutines.jvm.internal.SuspendLambda'
+                  arity: CONST Int type=kotlin.Int value=2
+                  $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>>? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.<init>' type=kotlin.coroutines.Continuation<us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>>? origin=null
+                BLOCK type=kotlin.Unit origin=null
+            FUN name:invokeSuspend visibility:public modality:FINAL <> ($this:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>, $result:kotlin.Result<kotlin.Any?>) returnType:kotlin.Any?
+              overridden:
+                protected abstract fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in kotlin.coroutines.jvm.internal.SuspendLambda
+              $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>
+              VALUE_PARAMETER name:$result index:0 type:kotlin.Result<kotlin.Any?>
+              BLOCK_BODY
+                COMPOSITE type=kotlin.Unit origin=null
+                  BLOCK type=us.huseli.fistopy.dataclasses.track.Track? origin=FOLDED_SAFE_CALL
+                    WHEN type=us.huseli.fistopy.dataclasses.track.Track? origin=FOLDED_SAFE_CALL
+                      BRANCH
+                        if: COMPOSITE type=kotlin.Boolean origin=null
+                          VAR IR_TEMPORARY_VARIABLE name:tmp1761_safe_receiver type:us.huseli.fistopy.dataclasses.track.Track? [val]
+                            CALL 'public final fun getTrackById (trackId: kotlin.String, $completion: kotlin.coroutines.Continuation<us.huseli.fistopy.dataclasses.track.Track?>): kotlin.Any? [suspend] declared in us.huseli.fistopy.repositories.TrackRepository' type=us.huseli.fistopy.dataclasses.track.Track? origin=null
+                              $this: CALL 'public final fun <get-track> (): us.huseli.fistopy.repositories.TrackRepository declared in us.huseli.fistopy.repositories.Repositories' type=us.huseli.fistopy.repositories.TrackRepository origin=GET_PROPERTY
+                                $this: CALL 'public final fun access$getRepos$p ($this: us.huseli.fistopy.managers.LibraryManager): us.huseli.fistopy.repositories.Repositories declared in us.huseli.fistopy.managers.LibraryManager' type=us.huseli.fistopy.repositories.Repositories origin=null
+                                  $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:us.huseli.fistopy.managers.LibraryManager visibility:public/*package*/ [final]' type=us.huseli.fistopy.managers.LibraryManager origin=null
+                                    receiver: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                              trackId: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:$trackId type:kotlin.String visibility:public/*package*/ [final]' type=kotlin.String origin=null
+                                receiver: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                              $completion: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                          CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                            $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                              arg0: GET_VAR 'val tmp1761_safe_receiver: us.huseli.fistopy.dataclasses.track.Track? [val] declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend' type=us.huseli.fistopy.dataclasses.track.Track? origin=null
+                              arg1: CONST Null type=kotlin.Nothing? value=null
+                        then: CALL 'public final fun also <T> (block: kotlin.Function1<T of kotlin.StandardKt.also, kotlin.Unit>): T of kotlin.StandardKt.also [inline] declared in kotlin.StandardKt' type=us.huseli.fistopy.dataclasses.track.Track origin=null
+                          <T>: us.huseli.fistopy.dataclasses.track.Track
+                          $receiver: GET_VAR 'val tmp1761_safe_receiver: us.huseli.fistopy.dataclasses.track.Track? [val] declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend' type=us.huseli.fistopy.dataclasses.track.Track? origin=null
+                          block: BLOCK type=kotlin.Function1<us.huseli.fistopy.dataclasses.track.Track, kotlin.Unit> origin=LAMBDA
+                            COMPOSITE type=kotlin.Unit origin=null
+                            FUNCTION_REFERENCE 'private final fun invokeSuspend$lambda$0 (this$0: us.huseli.fistopy.managers.LibraryManager, it: us.huseli.fistopy.dataclasses.track.Track): kotlin.Unit declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=kotlin.Function1<us.huseli.fistopy.dataclasses.track.Track, kotlin.Unit> origin=INLINE_LAMBDA reflectionTarget=null
+                              this$0: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:us.huseli.fistopy.managers.LibraryManager visibility:public/*package*/ [final]' type=us.huseli.fistopy.managers.LibraryManager origin=null
+                                receiver: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                      BRANCH
+                        if: CONST Boolean type=kotlin.Boolean value=true
+                        then: CONST Null type=kotlin.Nothing? value=null
+                  COMPOSITE type=kotlin.Unit origin=null
+            FUN name:create visibility:public modality:FINAL <> ($this:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>, value:kotlin.Any?, $completion:kotlin.coroutines.Continuation<kotlin.Nothing>) returnType:kotlin.coroutines.Continuation<kotlin.Unit>
+              overridden:
+                public open fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in kotlin.coroutines.jvm.internal.SuspendLambda
+              $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>
+              VALUE_PARAMETER name:value index:0 type:kotlin.Any?
+              VALUE_PARAMETER name:$completion index:1 type:kotlin.coroutines.Continuation<kotlin.Nothing>
+              BLOCK_BODY
+                RETURN type=kotlin.Nothing from='public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>'
+                  CONSTRUCTOR_CALL 'public/*package*/ constructor <init> (this$0: us.huseli.fistopy.managers.LibraryManager, $trackId: kotlin.String, $completion: kotlin.coroutines.Continuation<us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>>?) [primary] declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                    this$0: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:us.huseli.fistopy.managers.LibraryManager visibility:public/*package*/ [final]' type=us.huseli.fistopy.managers.LibraryManager origin=null
+                      receiver: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.create' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                    $trackId: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:$trackId type:kotlin.String visibility:public/*package*/ [final]' type=kotlin.String origin=null
+                      receiver: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.create' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                    $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<kotlin.Nothing> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.create' type=kotlin.coroutines.Continuation<kotlin.Nothing> origin=null
+            FUN name:invoke visibility:public modality:FINAL <> ($this:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>, p1:kotlinx.coroutines.CoroutineScope, p2:kotlin.coroutines.Continuation<kotlin.Unit>?) returnType:kotlin.Any?
+              overridden:
+                public abstract fun invoke (p1: P1 of kotlin.jvm.functions.Function2, p2: P2 of kotlin.jvm.functions.Function2): R of kotlin.jvm.functions.Function2 declared in kotlin.jvm.functions.Function2
+              $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>
+              VALUE_PARAMETER name:p1 index:0 type:kotlinx.coroutines.CoroutineScope
+              VALUE_PARAMETER name:p2 index:1 type:kotlin.coroutines.Continuation<kotlin.Unit>?
+              BLOCK_BODY
+                RETURN type=kotlin.Nothing from='public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>'
+                  CALL 'public final fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=kotlin.Any? origin=null
+                    $this: TYPE_OP type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=IMPLICIT_CAST typeOperand=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>
+                      CALL 'public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=kotlin.coroutines.Continuation<kotlin.Unit> origin=null
+                        $this: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invoke' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                        value: GET_VAR 'p1: kotlinx.coroutines.CoroutineScope declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invoke' type=kotlinx.coroutines.CoroutineScope origin=null
+                        $completion: GET_VAR 'p2: kotlin.coroutines.Continuation<kotlin.Unit>? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invoke' type=kotlin.coroutines.Continuation<kotlin.Unit>? origin=null
+                    $result: CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=kotlin.Result<kotlin.Any?> origin=null
+                      <T>: kotlin.Any?
+                      <R>: kotlin.Result<kotlin.Any?>
+                      v: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:kotlin.Unit visibility:public [final,static]' type=kotlin.Unit origin=null
+            FIELD FIELD_FOR_CAPTURED_VALUE name:this$0 type:us.huseli.fistopy.managers.LibraryManager visibility:public/*package*/ [final]
+            FIELD FIELD_FOR_CAPTURED_VALUE name:$trackId type:kotlin.String visibility:public/*package*/ [final]
+            FUN INLINE_LAMBDA name:invokeSuspend$lambda$0 visibility:private modality:FINAL <> (this$0:us.huseli.fistopy.managers.LibraryManager, it:us.huseli.fistopy.dataclasses.track.Track) returnType:kotlin.Unit
+              VALUE_PARAMETER BOUND_VALUE_PARAMETER name:this$0 index:0 type:us.huseli.fistopy.managers.LibraryManager
+              VALUE_PARAMETER name:it index:1 type:us.huseli.fistopy.dataclasses.track.Track
+              BLOCK_BODY
+                VAR name:$i$a$-also-LibraryManager$ensureTrackMetadataAsync$1$1 type:kotlin.Int [val]
+                  CONST Int type=kotlin.Int value=0
+                COMPOSITE type=kotlin.Unit origin=null
+                  CALL 'public final fun ensureTrackMetadata$default ($this: us.huseli.fistopy.managers.LibraryManager, track: us.huseli.fistopy.dataclasses.track.Track, forceReload: kotlin.Boolean, commit: kotlin.Boolean, $completion: kotlin.coroutines.Continuation<us.huseli.fistopy.dataclasses.track.Track>, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.Any? [suspend] declared in us.huseli.fistopy.managers.LibraryManager' type=us.huseli.fistopy.dataclasses.track.Track origin=DEFAULT_DISPATCH_CALL
+                    $this: GET_VAR 'this$0: us.huseli.fistopy.managers.LibraryManager declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend$lambda$0' type=us.huseli.fistopy.managers.LibraryManager origin=null
+                    track: GET_VAR 'it: us.huseli.fistopy.dataclasses.track.Track declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invokeSuspend$lambda$0' type=us.huseli.fistopy.dataclasses.track.Track origin=null
+                    forceReload: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                      CONST Boolean type=kotlin.Boolean value=false
+                    commit: COMPOSITE type=kotlin.Boolean origin=DEFAULT_VALUE
+                      CONST Boolean type=kotlin.Boolean value=false
+                    $completion: COMPOSITE type=kotlin.coroutines.Continuation<us.huseli.fistopy.dataclasses.track.Track> origin=FAKE_CONTINUATION
+                    $mask0: CONST Int type=kotlin.Int value=6
+                    $handler: CONST Null type=kotlin.Any? value=null
+                  COMPOSITE type=kotlin.Unit origin=null
+            FUN BRIDGE name:invoke visibility:public modality:OPEN <> ($this:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>, p1:kotlin.Any?, p2:kotlin.Any?) returnType:kotlin.Any?
+              $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>
+              VALUE_PARAMETER BRIDGE name:p1 index:0 type:kotlin.Any?
+              VALUE_PARAMETER BRIDGE name:p2 index:1 type:kotlin.Any?
+              EXPRESSION_BODY
+                RETURN type=kotlin.Nothing from='public open fun invoke (p1: kotlin.Any?, p2: kotlin.Any?): kotlin.Any? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>'
+                  CALL 'public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=kotlin.Any? origin=BRIDGE_DELEGATION
+                    $this: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invoke' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+                    p1: TYPE_OP type=kotlinx.coroutines.CoroutineScope origin=IMPLICIT_CAST typeOperand=kotlinx.coroutines.CoroutineScope
+                      GET_VAR 'p1: kotlin.Any? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invoke' type=kotlin.Any? origin=null
+                    p2: TYPE_OP type=kotlin.coroutines.Continuation<*> origin=IMPLICIT_CAST typeOperand=kotlin.coroutines.Continuation<*>
+                      GET_VAR 'p2: kotlin.Any? declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>.invoke' type=kotlin.Any? origin=null
+          CONSTRUCTOR_CALL 'public/*package*/ constructor <init> (this$0: us.huseli.fistopy.managers.LibraryManager, $trackId: kotlin.String, $completion: kotlin.coroutines.Continuation<us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>>?) [primary] declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided>' type=us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync.<no name provided> origin=null
+            this$0: GET_VAR '<this>: us.huseli.fistopy.managers.LibraryManager declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync' type=us.huseli.fistopy.managers.LibraryManager origin=null
+            $trackId: GET_VAR 'trackId: kotlin.String declared in us.huseli.fistopy.managers.LibraryManager.ensureTrackMetadataAsync' type=kotlin.String origin=null
+            $completion: CONST Null type=kotlin.Nothing? value=null
+      COMPOSITE type=kotlin.Unit origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:50)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:42)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:385)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:402)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:169)
+	at org.jetbrains.kotlin.backend.jvm.FileCodegen.lower(JvmPhases.kt:41)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseBuildersKt.makeIrFilePhase$lambda$5(PhaseBuilders.kt:114)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseBuildersKt$createSimpleNamedCompilerPhase$1.phaseBody(PhaseBuilders.kt:71)
+	at org.jetbrains.kotlin.backend.common.phaser.SimpleNamedCompilerPhase.phaseBody(CompilerPhase.kt:226)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:62)
+	... 44 more
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't transform method node:
+invokeSuspend (Ljava/lang/Object;)Ljava/lang/Object;:
+    // annotable parameter count: 1 (visible)
+    // annotable parameter count: 1 (invisible)
+    INVOKESTATIC kotlin/coroutines/intrinsics/IntrinsicsKt.getCOROUTINE_SUSPENDED ()Ljava/lang/Object;
+   L0
+    LINENUMBER 189 L0
+    ASTORE 7
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.label : I
+    TABLESWITCH
+      0: L1
+      1: L2
+      2: L3
+      default: L4
+   L1
+    ALOAD 1
+    INVOKESTATIC kotlin/ResultKt.throwOnFailure (Ljava/lang/Object;)V
+   L5
+   L6
+    LINENUMBER 190 L6
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.this$0 : Lus/huseli/fistopy/managers/LibraryManager;
+    INVOKESTATIC us/huseli/fistopy/managers/LibraryManager.access$getRepos$p (Lus/huseli/fistopy/managers/LibraryManager;)Lus/huseli/fistopy/repositories/Repositories;
+    INVOKEVIRTUAL us/huseli/fistopy/repositories/Repositories.getTrack ()Lus/huseli/fistopy/repositories/TrackRepository;
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.$trackId : Ljava/lang/String;
+    ALOAD 0
+    CHECKCAST kotlin/coroutines/Continuation
+    ALOAD 0
+    ICONST_1
+    PUTFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.label : I
+    INVOKEVIRTUAL us/huseli/fistopy/repositories/TrackRepository.getTrackById (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+   L7
+    DUP
+    ALOAD 7
+    IF_ACMPNE L8
+   L9
+    LINENUMBER 189 L9
+    ALOAD 7
+    ARETURN
+   L2
+   L10
+    NOP
+    ALOAD 1
+    INVOKESTATIC kotlin/ResultKt.throwOnFailure (Ljava/lang/Object;)V
+    ALOAD 1
+   L8
+    LINENUMBER 190 L8
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    ASTORE 2
+   L11
+    ALOAD 2
+    IFNULL L12
+    ALOAD 2
+    ASTORE 3
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.this$0 : Lus/huseli/fistopy/managers/LibraryManager;
+    ASTORE 4
+    NOP
+   L13
+    NOP
+    ALOAD 3
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    ASTORE 5
+   L14
+    LINENUMBER 505 L14
+   L15
+    ICONST_0
+    ISTORE 6
+   L16
+   L17
+    LINENUMBER 190 L17
+    ALOAD 4
+    ALOAD 5
+    NOP
+    ICONST_0
+    NOP
+    ICONST_0
+    ALOAD 0
+    BIPUSH 6
+    ACONST_NULL
+    ALOAD 0
+    ALOAD 3
+    PUTFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.L$0 : Ljava/lang/Object;
+    ALOAD 0
+    ICONST_2
+    PUTFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.label : I
+    INVOKESTATIC us/huseli/fistopy/managers/LibraryManager.ensureTrackMetadata$default (Lus/huseli/fistopy/managers/LibraryManager;Lus/huseli/fistopy/dataclasses/track/Track;ZZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+   L18
+    DUP
+    ALOAD 7
+    IF_ACMPNE L19
+   L20
+    LINENUMBER 189 L20
+    ALOAD 7
+    ARETURN
+   L3
+    ICONST_0
+    ISTORE 6
+   L21
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.L$0 : Ljava/lang/Object;
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    ASTORE 3
+   L22
+    NOP
+    ALOAD 1
+    INVOKESTATIC kotlin/ResultKt.throwOnFailure (Ljava/lang/Object;)V
+    ALOAD 1
+   L19
+    LINENUMBER 190 L19
+    POP
+    NOP
+    NOP
+    GOTO L23
+   L24
+   L25
+   L23
+   L26
+    LINENUMBER 190 L26
+    ALOAD 3
+    NOP
+    GOTO L27
+   L28
+   L29
+   L27
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    GOTO L30
+   L12
+   L31
+    LINENUMBER 190 L31
+    NOP
+    ACONST_NULL
+   L30
+   L32
+    POP
+   L33
+    LINENUMBER 191 L33
+    NOP
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    ARETURN
+   L34
+   L4
+    LINENUMBER 189 L4
+    NEW java/lang/IllegalStateException
+    DUP
+    LDC "call to 'resume' before 'invoke' with coroutine"
+    INVOKESPECIAL java/lang/IllegalStateException.<init> (Ljava/lang/String;)V
+    ATHROW
+    RETURN
+    LOCALVARIABLE it Lus/huseli/fistopy/dataclasses/track/Track; L14 L18 5
+    LOCALVARIABLE $i$a$-also-LibraryManager$ensureTrackMetadataAsync$1$1 I L16 L3 6
+    LOCALVARIABLE this Lus/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1; L5 L34 0
+    LOCALVARIABLE $result Ljava/lang/Object; L5 L34 1
+    LOCALVARIABLE $i$a$-also-LibraryManager$ensureTrackMetadataAsync$1$1 I L21 L25 6
+    MAXSTACK = 8
+    MAXLOCALS = 8
+
+File is unknown
+The root cause org.jetbrains.kotlin.codegen.CompilationException was thrown at: org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.jetbrains.kotlin.backend.jvm.codegen.CoroutineCodegenKt.acceptWithStateMachine(CoroutineCodegen.kt:76)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:169)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:994)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:573)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:587)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitBlock(IrElementVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:407)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:216)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:610)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:638)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:573)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:587)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitComposite(IrElementVisitor.kt:125)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitComposite(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitComposite(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.expressions.IrComposite.accept(IrComposite.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:573)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:578)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:239)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:121)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:46)
+	... 54 more
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't transform method node:
+invokeSuspend (Ljava/lang/Object;)Ljava/lang/Object;:
+    // annotable parameter count: 1 (visible)
+    // annotable parameter count: 1 (invisible)
+    INVOKESTATIC kotlin/coroutines/intrinsics/IntrinsicsKt.getCOROUTINE_SUSPENDED ()Ljava/lang/Object;
+   L0
+    LINENUMBER 189 L0
+    ASTORE 7
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.label : I
+    TABLESWITCH
+      0: L1
+      1: L2
+      2: L3
+      default: L4
+   L1
+    ALOAD 1
+    INVOKESTATIC kotlin/ResultKt.throwOnFailure (Ljava/lang/Object;)V
+   L5
+    LINENUMBER 190 L5
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.this$0 : Lus/huseli/fistopy/managers/LibraryManager;
+    INVOKESTATIC us/huseli/fistopy/managers/LibraryManager.access$getRepos$p (Lus/huseli/fistopy/managers/LibraryManager;)Lus/huseli/fistopy/repositories/Repositories;
+    INVOKEVIRTUAL us/huseli/fistopy/repositories/Repositories.getTrack ()Lus/huseli/fistopy/repositories/TrackRepository;
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.$trackId : Ljava/lang/String;
+    ALOAD 0
+    CHECKCAST kotlin/coroutines/Continuation
+    ALOAD 0
+    ICONST_1
+    PUTFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.label : I
+    INVOKEVIRTUAL us/huseli/fistopy/repositories/TrackRepository.getTrackById (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+   L6
+    DUP
+    ALOAD 7
+    IF_ACMPNE L7
+   L8
+    LINENUMBER 189 L8
+    ALOAD 7
+    ARETURN
+   L2
+    NOP
+    ALOAD 1
+    INVOKESTATIC kotlin/ResultKt.throwOnFailure (Ljava/lang/Object;)V
+    ALOAD 1
+   L7
+    LINENUMBER 190 L7
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    ASTORE 2
+   L9
+    ALOAD 2
+    IFNULL L10
+    ALOAD 2
+    INVOKESTATIC kotlin/jvm/internal/$PseudoInsn.AS_NOT_NULL (Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 2
+    ALOAD 2
+    ASTORE 3
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.this$0 : Lus/huseli/fistopy/managers/LibraryManager;
+    ASTORE 4
+    NOP
+   L11
+    NOP
+    ALOAD 3
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    ASTORE 5
+   L12
+    LINENUMBER 505 L12
+   L13
+    ICONST_0
+    ISTORE 6
+   L14
+    LINENUMBER 190 L14
+    ALOAD 4
+    ALOAD 5
+    NOP
+    ICONST_0
+    NOP
+    ICONST_0
+    ALOAD 0
+    BIPUSH 6
+    ACONST_NULL
+    ALOAD 0
+    ALOAD 3
+    PUTFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.L$0 : Ljava/lang/Object;
+    ALOAD 0
+    ICONST_2
+    PUTFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.label : I
+    INVOKESTATIC us/huseli/fistopy/managers/LibraryManager.ensureTrackMetadata$default (Lus/huseli/fistopy/managers/LibraryManager;Lus/huseli/fistopy/dataclasses/track/Track;ZZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+   L15
+    DUP
+    ALOAD 7
+    IF_ACMPNE L16
+   L17
+    LINENUMBER 189 L17
+    ALOAD 7
+    ARETURN
+   L3
+    ICONST_0
+    ISTORE 6
+   L18
+    ALOAD 0
+    GETFIELD us/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1.L$0 : Ljava/lang/Object;
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    ASTORE 3
+   L19
+    NOP
+    ALOAD 1
+    INVOKESTATIC kotlin/ResultKt.throwOnFailure (Ljava/lang/Object;)V
+    ALOAD 1
+   L16
+    LINENUMBER 190 L16
+    POP
+    NOP
+    NOP
+    GOTO L20
+   L20
+    LINENUMBER 190 L20
+    ALOAD 3
+    NOP
+    GOTO L21
+   L21
+    CHECKCAST us/huseli/fistopy/dataclasses/track/Track
+    GOTO L22
+   L23
+    LINENUMBER 190 L23
+    NOP
+    ACONST_NULL
+   L22
+    POP
+   L24
+    LINENUMBER 191 L24
+    NOP
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    ARETURN
+   L4
+    LINENUMBER 189 L4
+    NEW java/lang/IllegalStateException
+    DUP
+    LDC "call to 'resume' before 'invoke' with coroutine"
+    INVOKESPECIAL java/lang/IllegalStateException.<init> (Ljava/lang/String;)V
+    ATHROW
+    RETURN
+   L10
+    ACONST_NULL
+    ASTORE 2
+    GOTO L23
+    LOCALVARIABLE it Lus/huseli/fistopy/dataclasses/track/Track; L12 L15 5
+    LOCALVARIABLE $i$a$-also-LibraryManager$ensureTrackMetadataAsync$1$1 I L14 L3 6
+    LOCALVARIABLE this Lus/huseli/fistopy/managers/LibraryManager$ensureTrackMetadataAsync$1; L5 L4 0
+    LOCALVARIABLE $result Ljava/lang/Object; L5 L4 1
+    LOCALVARIABLE $i$a$-also-LibraryManager$ensureTrackMetadataAsync$1$1 I L18 L20 6
+    MAXSTACK = 9
+    MAXLOCALS = 8
+
+File is unknown
+The root cause java.lang.OutOfMemoryError was thrown at: org.jetbrains.org.objectweb.asm.tree.analysis.Frame.<init>(Frame.java:78)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:87)
+	... 88 more
+Caused by: java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at org.jetbrains.org.objectweb.asm.tree.analysis.Frame.<init>(Frame.java:78)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer._init_$lambda$0(FastMethodAnalyzer.kt:47)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer$$Lambda$2442/0x0000000100e5ddc8.invoke(Unknown Source)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.fullMergeControlFlowEdge(FastAnalyzer.kt:233)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.mergeControlFlowEdge(FastAnalyzer.kt:216)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.processControlFlowEdge(FastAnalyzer.kt:208)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.processControlFlowEdge$default(FastAnalyzer.kt:206)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.visitOpInsn(FastAnalyzer.kt:292)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.visitMeaningfulInstruction(FastAnalyzer.kt:281)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyzeInstruction(FastAnalyzer.kt:113)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyzeMainLoop(FastAnalyzer.kt:74)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyze(FastAnalyzer.kt:53)
+	at org.jetbrains.kotlin.codegen.optimization.transformer.MethodTransformer.analyze(MethodTransformer.java:49)
+	at org.jetbrains.kotlin.codegen.optimization.nullCheck.RedundantNullCheckMethodTransformer$TransformerPass.analyzeNullabilities(RedundantNullCheckMethodTransformer.kt:65)
+	at org.jetbrains.kotlin.codegen.optimization.nullCheck.RedundantNullCheckMethodTransformer$TransformerPass.run(RedundantNullCheckMethodTransformer.kt:55)
+	at org.jetbrains.kotlin.codegen.optimization.nullCheck.RedundantNullCheckMethodTransformer.transform(RedundantNullCheckMethodTransformer.kt:43)
+	at org.jetbrains.kotlin.codegen.optimization.transformer.CompositeMethodTransformer.transform(CompositeMethodTransformer.kt:25)
+	at org.jetbrains.kotlin.codegen.optimization.OptimizationMethodVisitor.performTransformations(OptimizationMethodVisitor.kt:74)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:67)
+	at org.jetbrains.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:87)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.jetbrains.kotlin.backend.jvm.codegen.CoroutineCodegenKt.acceptWithStateMachine(CoroutineCodegen.kt:76)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:169)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:994)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitClass(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.declarations.IrClass.accept(IrClass.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:573)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:587)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:137)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitBlock(IrElementVisitor.kt:122)
+
+

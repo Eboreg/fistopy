@@ -2,6 +2,7 @@ package us.huseli.fistopy.viewmodels
 
 import androidx.lifecycle.SavedStateHandle
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,12 +29,13 @@ class PlaylistViewModel @Inject constructor(
 
     private val trackStateHandler =
         object : AbstractTrackUiStateListHandler<TrackUiState>(key = "playlist", repos = repos, managers = managers) {
-            override val baseItems: Flow<List<TrackUiState>> = _trackUiStates
+            override val baseItems: Flow<List<TrackUiState>>
+                get() = _trackUiStates
         }
 
     val isLoadingTracks = trackStateHandler.isLoadingItems
-    val selectedTrackCount = trackStateHandler.selectedItemCount
-    val trackUiStates = trackStateHandler.items
+    val selectedTrackCount = trackStateHandler.selectedItemCount.stateWhileSubscribed(0)
+    val trackUiStates = trackStateHandler.items.stateWhileSubscribed(persistentListOf())
 
     val playlistState: StateFlow<PlaylistUiState?> =
         combine(_playlistId, repos.playlist.playlistUiStates) { playlistId, states ->

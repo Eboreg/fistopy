@@ -2,7 +2,7 @@ package us.huseli.fistopy.dataclasses.track
 
 import kotlinx.collections.immutable.ImmutableCollection
 import us.huseli.fistopy.dataclasses.artist.IArtistCredit
-import us.huseli.fistopy.dataclasses.artist.ISavedArtistCredit
+import us.huseli.fistopy.dataclasses.artist.ISavedArtist
 import us.huseli.fistopy.interfaces.IAlbumArtOwner
 import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
 import us.huseli.fistopy.interfaces.IStringIdItem
@@ -30,7 +30,7 @@ abstract class AbstractTrackUiState : IStringIdItem, IAlbumArtOwner, IHasMusicBr
             fun fromArtistCredit(artistCredit: IArtistCredit): Artist {
                 return Artist(
                     name = artistCredit.name,
-                    id = if (artistCredit is ISavedArtistCredit) artistCredit.artistId else null,
+                    id = if (artistCredit is ISavedArtist) artistCredit.artistId else null,
                 )
             }
         }

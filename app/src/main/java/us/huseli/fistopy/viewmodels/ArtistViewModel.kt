@@ -21,7 +21,8 @@ import us.huseli.fistopy.compose.ListType
 import us.huseli.fistopy.dataclasses.album.AlbumUiState
 import us.huseli.fistopy.dataclasses.album.IAlbum
 import us.huseli.fistopy.dataclasses.artist.ArtistUiState
-import us.huseli.fistopy.dataclasses.artist.UnsavedArtist
+import us.huseli.fistopy.dataclasses.artist.IArtist
+import us.huseli.fistopy.dataclasses.artist.UnsavedArtistCredit
 import us.huseli.fistopy.dataclasses.callbacks.AppDialogCallbacks
 import us.huseli.fistopy.dataclasses.musicbrainz.MusicBrainzReleaseGroupBrowse
 import us.huseli.fistopy.dataclasses.spotify.toNativeArtists
@@ -49,8 +50,8 @@ class ArtistViewModel @Inject constructor(
 
     private val albumStateHandler =
         object : AbstractAlbumUiStateListHandler<AlbumUiState>(key = "artist", repos = repos, managers = managers) {
-            override val baseItems: StateFlow<List<AlbumUiState>> =
-                repos.album.flowAlbumUiStatesByArtist(artistId).stateWhileSubscribed(emptyList())
+            override val baseItems: StateFlow<List<AlbumUiState>>
+                get() = repos.album.flowAlbumUiStatesByArtist(artistId).stateWhileSubscribed(emptyList())
         }
 
     private val musicBrainzReleaseGroups = artistMusicBrainzId
@@ -63,11 +64,11 @@ class ArtistViewModel @Inject constructor(
 
     private val trackStateHandler =
         object : AbstractTrackUiStateListHandler<TrackUiState>(key = "artist", repos = repos, managers = managers) {
-            override val baseItems: StateFlow<List<TrackUiState>> =
-                repos.track.flowTrackUiStatesByArtist(artistId).stateWhileSubscribed(emptyList())
+            override val baseItems: StateFlow<List<TrackUiState>>
+                get() = repos.track.flowTrackUiStatesByArtist(artistId).stateWhileSubscribed(emptyList())
         }
 
-    val relatedArtists: StateFlow<ImmutableList<UnsavedArtist>> = artistSpotifyId
+    val relatedArtists: StateFlow<ImmutableList<UnsavedArtistCredit>> = artistSpotifyId
         .filterNotNull()
         .map { spotifyId ->
             repos.spotify.getRelatedArtists(spotifyId)?.toNativeArtists()?.toImmutableList() ?: persistentListOf()
@@ -97,12 +98,12 @@ class ArtistViewModel @Inject constructor(
         _otherAlbumTypes.map { it.toImmutableList() }.stateWhileSubscribed(persistentListOf())
     val uiState: StateFlow<ArtistUiState?> = artistCombo.map { it?.toUiState() }.stateWhileSubscribed()
 
-    val albumUiStates = albumStateHandler.items
+    val albumUiStates = albumStateHandler.items.stateWhileSubscribed(persistentListOf())
     val isLoadingAlbums = albumStateHandler.isLoadingItems
     val isLoadingTracks = trackStateHandler.isLoadingItems
-    val selectedAlbumCount = albumStateHandler.selectedItemCount
-    val selectedTrackCount = trackStateHandler.selectedItemCount
-    val trackUiStates = trackStateHandler.items
+    val selectedAlbumCount = albumStateHandler.selectedItemCount.stateWhileSubscribed(0)
+    val selectedTrackCount = trackStateHandler.selectedItemCount.stateWhileSubscribed(0)
+    val trackUiStates = trackStateHandler.items.stateWhileSubscribed(persistentListOf())
 
     fun getAlbumDownloadUiStateFlow(albumId: String) =
         managers.library.getAlbumDownloadUiStateFlow(albumId).stateWhileSubscribed()
@@ -123,7 +124,7 @@ class ArtistViewModel @Inject constructor(
     fun onOtherAlbumClick(releaseGroupId: String, onGotoAlbumClick: (String) -> Unit) =
         managers.library.addTemporaryMusicBrainzAlbum(releaseGroupId, onGotoAlbumClick)
 
-    fun onRelatedArtistClick(artist: UnsavedArtist, onGotoArtistClick: (String) -> Unit) {
+    fun onRelatedArtistClick(artist: IArtist, onGotoArtistClick: (String) -> Unit) {
         launchOnIOThread {
             val savedArtist = repos.artist.upsertArtist(artist)
 

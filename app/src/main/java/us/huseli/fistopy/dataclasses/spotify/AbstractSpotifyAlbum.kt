@@ -1,37 +1,15 @@
 package us.huseli.fistopy.dataclasses.spotify
 
-import androidx.annotation.StringRes
-import com.google.gson.annotations.SerializedName
-import us.huseli.fistopy.R
 import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
-import us.huseli.fistopy.dataclasses.album.IAlbumProducer
 import us.huseli.fistopy.dataclasses.album.IExternalAlbumWithTracksProducer
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
 import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.tag.Tag
 import us.huseli.fistopy.dataclasses.track.ExternalTrackCombo
-import us.huseli.fistopy.enums.AlbumType
-
-enum class SpotifyAlbumType(@StringRes val stringRes: Int) {
-    @SerializedName("album")
-    ALBUM(R.string.album),
-
-    @SerializedName("single")
-    SINGLE(R.string.single),
-
-    @SerializedName("compilation")
-    COMPILATION(R.string.compilation);
-
-    val nativeAlbumType: AlbumType
-        get() = when (this) {
-            ALBUM -> AlbumType.ALBUM
-            SINGLE -> AlbumType.SINGLE
-            COMPILATION -> AlbumType.COMPILATION
-        }
-}
+import java.util.UUID
 
 abstract class AbstractSpotifyAlbum<T : AbstractSpotifyAlbum<T>> : AbstractSpotifyItem(),
-    IAlbumProducer, IExternalAlbumWithTracksProducer<T> {
+    IExternalAlbumWithTracksProducer<T> {
     abstract val spotifyAlbumType: SpotifyAlbumType?
     abstract val artists: List<SpotifySimplifiedArtist>
     abstract override val id: String
@@ -48,7 +26,7 @@ abstract class AbstractSpotifyAlbum<T : AbstractSpotifyAlbum<T>> : AbstractSpoti
 
     open fun getTags(): List<Tag> = emptyList()
 
-    override fun toAlbum(isLocal: Boolean, isInLibrary: Boolean, albumId: String) = UnsavedAlbum(
+    fun toAlbum(isLocal: Boolean, isInLibrary: Boolean, albumId: String = UUID.randomUUID().toString()) = UnsavedAlbum(
         albumArt = images.toMediaStoreImage(),
         albumId = albumId,
         albumType = spotifyAlbumType?.nativeAlbumType,

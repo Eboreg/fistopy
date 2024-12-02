@@ -8,20 +8,6 @@ import us.huseli.fistopy.dataclasses.tag.Tag
 import us.huseli.fistopy.dataclasses.track.ExternalTrackCombo
 
 
-data class SpotifySimplifiedAlbum(
-    @SerializedName("album_type")
-    override val spotifyAlbumType: SpotifyAlbumType?,
-    override val artists: List<SpotifySimplifiedArtist>,
-    override val id: String,
-    override val images: List<SpotifyImage>,
-    override val name: String,
-    @SerializedName("release_date")
-    override val releaseDate: String,
-    @SerializedName("total_tracks")
-    override val totalTracks: Int,
-) : AbstractSpotifyAlbum<SpotifySimplifiedAlbum>()
-
-
 data class SpotifyAlbum(
     @SerializedName("album_type")
     override val spotifyAlbumType: SpotifyAlbumType?,
@@ -46,10 +32,3 @@ data class SpotifyAlbum(
 
     override fun getTags(): List<Tag> = genres.map { Tag(name = capitalizeGenreName(it)) }
 }
-
-
-data class SpotifySavedAlbumObject(
-    @SerializedName("added_at")
-    val addedAt: String,
-    val album: SpotifyAlbum,
-)

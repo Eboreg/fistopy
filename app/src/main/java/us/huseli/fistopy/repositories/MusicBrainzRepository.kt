@@ -14,8 +14,8 @@ import us.huseli.fistopy.DeferredRequestJob
 import us.huseli.fistopy.DeferredRequestJobManager
 import us.huseli.fistopy.MutexCache
 import us.huseli.fistopy.Request
-import us.huseli.fistopy.dataclasses.CoverArtArchiveImage
-import us.huseli.fistopy.dataclasses.CoverArtArchiveResponse
+import us.huseli.fistopy.dataclasses.coverartarchive.CoverArtArchiveImage
+import us.huseli.fistopy.dataclasses.coverartarchive.CoverArtArchiveResponse
 import us.huseli.fistopy.dataclasses.album.AlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.IAlbumWithTracksCombo

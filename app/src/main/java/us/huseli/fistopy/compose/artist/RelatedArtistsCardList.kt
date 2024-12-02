@@ -25,14 +25,14 @@ import us.huseli.fistopy.R
 import us.huseli.fistopy.compose.FistopyTheme
 import us.huseli.fistopy.compose.utils.HorizontalCardList
 import us.huseli.fistopy.compose.utils.SmallOutlinedButton
-import us.huseli.fistopy.dataclasses.artist.UnsavedArtist
+import us.huseli.fistopy.dataclasses.artist.IArtist
 import us.huseli.fistopy.stringResource
 import us.huseli.fistopy.umlautify
 
 @Composable
 fun RelatedArtistsCardList(
-    relatedArtists: ImmutableList<UnsavedArtist>,
-    onClick: (UnsavedArtist) -> Unit,
+    relatedArtists: ImmutableList<IArtist>,
+    onClick: (IArtist) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
 

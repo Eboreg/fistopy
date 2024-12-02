@@ -7,36 +7,6 @@ import androidx.room.Embedded
 import us.huseli.fistopy.dataclasses.MediaStoreImage
 import java.util.UUID
 
-interface IAlbumArtistCredit : IArtistCredit {
-    val albumId: String
-
-    fun withAlbumId(albumId: String): IAlbumArtistCredit
-
-    fun withArtistId(artistId: String) = AlbumArtistCredit(
-        albumId = albumId,
-        artistId = artistId,
-        name = name,
-        spotifyId = spotifyId,
-        musicBrainzId = musicBrainzId,
-        joinPhrase = joinPhrase,
-        image = image,
-        position = position,
-    )
-}
-
-@Immutable
-data class UnsavedAlbumArtistCredit(
-    override val albumId: String,
-    override val name: String,
-    override val spotifyId: String? = null,
-    override val musicBrainzId: String? = null,
-    override val image: MediaStoreImage? = null,
-    override val joinPhrase: String = "/",
-    override val position: Int = 0,
-) : IAlbumArtistCredit {
-    override fun withAlbumId(albumId: String): UnsavedAlbumArtistCredit = copy(albumId = albumId)
-}
-
 @DatabaseView(
     """
     SELECT AlbumArtist.*,
@@ -59,7 +29,7 @@ data class AlbumArtistCredit(
     @ColumnInfo("AlbumArtist_joinPhrase") override val joinPhrase: String = "/",
     @Embedded("AlbumArtist_image_") override val image: MediaStoreImage? = null,
     @ColumnInfo("AlbumArtist_position") override val position: Int = 0,
-) : IAlbumArtistCredit, ISavedArtistCredit {
+) : IAlbumArtistCredit, ISavedArtist {
     override fun withAlbumId(albumId: String): AlbumArtistCredit = copy(albumId = albumId)
 }
 

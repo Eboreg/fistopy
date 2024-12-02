@@ -106,8 +106,8 @@ class AlbumViewModel @Inject constructor(
             private val _trackCombos: StateFlow<List<TrackCombo>> =
                 repos.track.flowTrackCombosByAlbumId(_albumId).stateWhileSubscribed(emptyList())
 
-            override val baseItems: Flow<List<AlbumTrackUiState>> =
-                combine(_albumCombo, _trackCombos) { albumCombo, trackCombos ->
+            override val baseItems: Flow<List<AlbumTrackUiState>>
+                get() = combine(_albumCombo, _trackCombos) { albumCombo, trackCombos ->
                     trackCombos.map { combo ->
                         AlbumTrackUiState(
                             albumId = combo.track.albumId,
@@ -147,8 +147,8 @@ class AlbumViewModel @Inject constructor(
     val importProgress: StateFlow<ProgressData> = _importProgress.asStateFlow()
     val downloadState: StateFlow<AlbumDownloadTask.UiState?> =
         managers.library.getAlbumDownloadUiStateFlow(_albumId).stateWhileSubscribed()
-    val selectedTrackCount = trackStateHandler.selectedItemCount
-    val trackUiStates = trackStateHandler.items
+    val selectedTrackCount = trackStateHandler.selectedItemCount.stateWhileSubscribed(0)
+    val trackUiStates = trackStateHandler.items.stateWhileSubscribed(persistentListOf())
     val uiState: StateFlow<AlbumUiState?> = _albumCombo.map { it?.toUiState() }.stateWhileSubscribed()
 
     val otherArtistAlbums: StateFlow<ImmutableList<OtherArtistAlbums>> = combine(

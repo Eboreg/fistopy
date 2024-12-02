@@ -9,4 +9,4 @@ data class UnsavedAlbumWithTracksCombo(
     override val artists: List<IAlbumArtistCredit> = emptyList(),
     override val tags: List<Tag> = emptyList(),
     override val trackCombos: List<UnsavedTrackCombo> = emptyList(),
-) : IAlbumWithTracksCombo<UnsavedAlbum, UnsavedAlbumWithTracksCombo>, IUnsavedAlbumCombo
+) : IAlbumWithTracksCombo<UnsavedAlbum, UnsavedAlbumWithTracksCombo>

@@ -19,7 +19,7 @@ data class LocalImportableTrack(
     override fun toTrackCombo(
         isInLibrary: Boolean,
         album: UnsavedAlbum?,
-        albumArtists: List<IAlbumArtistCredit>?,
+        albumArtists: Iterable<IAlbumArtistCredit>?,
         albumPosition: Int?
     ): ExternalTrackCombo<LocalImportableTrack> {
         val track = Track(
@@ -43,7 +43,7 @@ data class LocalImportableTrack(
             album = album,
             track = track,
             trackArtists = trackArtists ?: emptyList(),
-            albumArtists = albumArtists ?: id3.albumArtist?.let { artist ->
+            albumArtists = albumArtists?.toList() ?: id3.albumArtist?.let { artist ->
                 album?.albumId?.let { albumId ->
                     listOf(UnsavedAlbumArtistCredit(name = artist, albumId = albumId))
                 }

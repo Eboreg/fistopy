@@ -37,11 +37,11 @@ data class YoutubeVideo(
     override fun toTrackCombo(
         isInLibrary: Boolean,
         album: UnsavedAlbum?,
-        albumArtists: List<IAlbumArtistCredit>?,
+        albumArtists: Iterable<IAlbumArtistCredit>?,
         albumPosition: Int?
     ): ExternalTrackCombo<YoutubeVideo> {
         val track = Track(
-            title = albumArtists?.joined()
+            title = albumArtists?.toList()?.joined()
                 ?.let { title.replace(Regex("^$it (- )?", RegexOption.IGNORE_CASE), "") }
                 ?: title,
             isInLibrary = isInLibrary,
@@ -63,7 +63,7 @@ data class YoutubeVideo(
             track = track,
             trackArtists = artist?.let { listOf(UnsavedTrackArtistCredit(name = it, trackId = track.trackId)) }
                 ?: emptyList(),
-            albumArtists = albumArtists ?: emptyList(),
+            albumArtists = albumArtists?.toList() ?: emptyList(),
         )
     }
 }

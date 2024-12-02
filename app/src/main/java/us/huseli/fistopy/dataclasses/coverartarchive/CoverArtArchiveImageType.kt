@@ -1,4 +1,4 @@
-package us.huseli.fistopy.dataclasses
+package us.huseli.fistopy.dataclasses.coverartarchive
 
 import com.google.gson.annotations.SerializedName
 
@@ -22,28 +22,3 @@ enum class CoverArtArchiveImageType {
     @SerializedName("Tray") TRAY,
     @SerializedName("Watermark") WATERMARK,
 }
-
-data class CoverArtArchiveImageThumbnails(
-    @SerializedName("250") val thumb250: String,
-    @SerializedName("500") val thumb500: String,
-    @SerializedName("1200") val thumb1200: String,
-)
-
-data class CoverArtArchiveImage(
-    val approved: Boolean,
-    val back: Boolean,
-    val comment: String,
-    val edit: Int,
-    val front: Boolean,
-    val id: Long,
-    val image: String,
-    val thumbnails: CoverArtArchiveImageThumbnails,
-    val types: List<CoverArtArchiveImageType>,
-) {
-    fun toMediaStoreImage(): MediaStoreImage = image.toMediaStoreImage(thumbnails.thumb250)
-}
-
-data class CoverArtArchiveResponse(
-    val images: List<CoverArtArchiveImage>,
-    val release: String,
-)

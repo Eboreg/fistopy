@@ -64,10 +64,12 @@ class ExternalSearchViewModel @Inject constructor(
         repos = repos,
         managers = managers,
     ) {
-        override val baseItems: StateFlow<List<ImportableAlbumUiState>> = _backend
-            .flatMapLatest { it.albumSearchHolder.currentPageItems.map { states -> states.toImmutableList() } }
-            .stateWhileSubscribed(persistentListOf())
-        override val selectedItemIds: Flow<List<String>> = _albumSearchHolder.flatMapLatest { it.selectedItemIds }
+        override val baseItems: StateFlow<List<ImportableAlbumUiState>>
+            get() = _backend
+                .flatMapLatest { it.albumSearchHolder.currentPageItems.map { states -> states.toImmutableList() } }
+                .stateWhileSubscribed(persistentListOf())
+        override val selectedItemIds: Flow<List<String>>
+            get() = _albumSearchHolder.flatMapLatest { it.selectedItemIds }
 
         override fun getAlbumSelectionCallbacks(dialogCallbacks: AppDialogCallbacks): AlbumSelectionCallbacks =
             super.getAlbumSelectionCallbacks(dialogCallbacks).copy(onDeleteClick = null)
@@ -85,10 +87,12 @@ class ExternalSearchViewModel @Inject constructor(
         repos = repos,
         managers = managers,
     ) {
-        override val baseItems: StateFlow<List<TrackUiState>> = _trackSearchHolder
-            .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
-            .stateWhileSubscribed(persistentListOf())
-        override val selectedItemIds: Flow<List<String>> = _trackSearchHolder.flatMapLatest { it.selectedItemIds }
+        override val baseItems: StateFlow<List<TrackUiState>>
+            get() = _trackSearchHolder
+                .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
+                .stateWhileSubscribed(persistentListOf())
+        override val selectedItemIds: Flow<List<String>>
+            get() = _trackSearchHolder.flatMapLatest { it.selectedItemIds }
 
         override fun onItemLongClick(itemId: String) = _currentBackend.trackSearchHolder.onItemLongClick(itemId)
 
@@ -98,7 +102,7 @@ class ExternalSearchViewModel @Inject constructor(
         override fun unselectAllItems() = _currentBackend.trackSearchHolder.deselectAll()
     }
 
-    val albumUiStates = albumStateHandler.items
+    val albumUiStates = albumStateHandler.items.stateWhileSubscribed(persistentListOf())
     val backendKey = _backendKey.asStateFlow()
     val currentPage = _holder.flatMapLatest { it.currentPage }.stateWhileSubscribed(0)
     val hasNextPage = _holder.flatMapLatest { it.hasNextPage }.stateWhileSubscribed(false)
@@ -106,9 +110,9 @@ class ExternalSearchViewModel @Inject constructor(
     val isSearching = _holder.flatMapLatest { it.isLoadingCurrentPage }.stateWhileSubscribed(false)
     val listType = _listType.asStateFlow()
     val searchCapabilities = _holder.mapLatest { it.searchCapabilities }.stateWhileSubscribed(emptyList())
-    val selectedAlbumCount = albumStateHandler.selectedItemCount
-    val selectedTrackCount = trackStateHandler.selectedItemCount
-    val trackUiStates = trackStateHandler.items
+    val selectedAlbumCount = albumStateHandler.selectedItemCount.stateWhileSubscribed(0)
+    val selectedTrackCount = trackStateHandler.selectedItemCount.stateWhileSubscribed(0)
+    val trackUiStates = trackStateHandler.items.stateWhileSubscribed(persistentListOf())
 
     val searchParams = combine(_listType, _backend) { listType, backend ->
         when (listType) {

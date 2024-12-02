@@ -11,5 +11,3 @@ fun Collection<IArtistCredit>.joined(): String? = takeIf { it.isNotEmpty() }
     ?.sorted()
     ?.mapIndexed { index, artist -> artist.name + if (index < size - 1) artist.joinPhrase else "" }
     ?.joinToString("")
-
-interface ISavedArtistCredit : IArtistCredit, ISavedArtist

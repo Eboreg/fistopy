@@ -2,7 +2,6 @@ package us.huseli.fistopy.dataclasses.album
 
 import kotlinx.collections.immutable.toImmutableList
 import org.apache.commons.text.similarity.LevenshteinDistance
-import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
 import us.huseli.fistopy.interfaces.IStringIdItem
@@ -78,13 +77,6 @@ interface IAlbumCombo<A : IAlbum> : IStringIdItem {
         unplayableTrackCount = unplayableTrackCount,
         yearString = yearString,
     )
-}
-
-interface IUnsavedAlbumCombo : IAlbumCombo<UnsavedAlbum>
-
-interface ISavedAlbumCombo : IAlbumCombo<Album> {
-    override val album: Album
-    override val artists: List<AlbumArtistCredit>
 }
 
 fun Iterable<IAlbumCombo<*>>.toUiStates() = map { it.toUiState() }.toImmutableList()

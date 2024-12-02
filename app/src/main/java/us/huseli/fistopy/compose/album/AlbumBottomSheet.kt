@@ -46,7 +46,7 @@ import us.huseli.fistopy.compose.utils.BottomSheetItem
 import us.huseli.fistopy.compose.utils.Thumbnail
 import us.huseli.fistopy.dataclasses.album.IAlbumUiState
 import us.huseli.fistopy.dataclasses.album.LocalAlbumCallbacks
-import us.huseli.fistopy.dataclasses.artist.ISavedArtistCredit
+import us.huseli.fistopy.dataclasses.artist.ISavedArtist
 import us.huseli.fistopy.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -166,7 +166,7 @@ fun AlbumBottomSheet(
         )
 
         uiState.artists.forEach { albumArtist ->
-            val artistId = if (albumArtist is ISavedArtistCredit) albumArtist.artistId else null
+            val artistId = if (albumArtist is ISavedArtist) albumArtist.artistId else null
 
             if (artistId != null) BottomSheetItem(
                 text = stringResource(R.string.go_to_x, albumArtist.name),

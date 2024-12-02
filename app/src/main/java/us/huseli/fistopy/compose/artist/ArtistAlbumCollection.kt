@@ -37,7 +37,7 @@ import us.huseli.fistopy.compose.utils.IsLoadingProgressIndicator
 import us.huseli.fistopy.dataclasses.album.AlbumSelectionCallbacks
 import us.huseli.fistopy.dataclasses.album.AlbumUiState
 import us.huseli.fistopy.dataclasses.album.IAlbum
-import us.huseli.fistopy.dataclasses.artist.UnsavedArtist
+import us.huseli.fistopy.dataclasses.artist.IArtist
 import us.huseli.fistopy.enums.AlbumType
 import us.huseli.fistopy.getUmlautifiedString
 import us.huseli.fistopy.stringResource
@@ -51,7 +51,7 @@ fun ArtistAlbumCollection(
     isLoading: Boolean,
     selectedAlbumCount: () -> Int,
     downloadStateFlow: (String) -> StateFlow<AlbumDownloadTask.UiState?>,
-    relatedArtists: ImmutableList<UnsavedArtist>,
+    relatedArtists: ImmutableList<IArtist>,
     otherAlbums: ImmutableList<IAlbum>,
     otherAlbumsPreview: ImmutableList<IAlbum>,
     otherAlbumTypes: ImmutableList<AlbumType>,
@@ -59,7 +59,7 @@ fun ArtistAlbumCollection(
     onLongClick: (AlbumUiState) -> Unit,
     onOtherAlbumClick: (String) -> Unit,
     onOtherAlbumTypeClick: (AlbumType) -> Unit,
-    onRelatedArtistClick: (UnsavedArtist) -> Unit,
+    onRelatedArtistClick: (IArtist) -> Unit,
 ) {
     val context = LocalContext.current
     var expandOtherAlbums by rememberSaveable { mutableStateOf(false) }

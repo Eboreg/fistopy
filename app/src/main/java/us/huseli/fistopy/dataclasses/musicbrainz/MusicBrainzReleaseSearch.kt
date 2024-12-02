@@ -27,8 +27,10 @@ data class MusicBrainzReleaseSearch(
             val primaryType: MusicBrainzReleaseGroupPrimaryType?,
         ) : AbstractMusicBrainzItem()
 
-        override val albumType: AlbumType? = super.albumType ?: releaseGroup.primaryType?.albumType
-        override val releaseGroupId: String = releaseGroup.id
+        override val albumType: AlbumType?
+            get() = super.albumType ?: releaseGroup.primaryType?.albumType
+        override val releaseGroupId: String
+            get() = releaseGroup.id
 
         fun matches(artist: String?, album: String): Boolean {
             val artistCredits = artistCredit.joined()

@@ -10,14 +10,6 @@ import kotlinx.parcelize.Parcelize
 import us.huseli.fistopy.dataclasses.MediaStoreImage
 import java.util.UUID
 
-@Immutable
-data class UnsavedArtist(
-    override val name: String,
-    override val spotifyId: String? = null,
-    override val musicBrainzId: String? = null,
-    override val image: MediaStoreImage? = null,
-) : IArtist
-
 @Parcelize
 @Entity
 @Immutable

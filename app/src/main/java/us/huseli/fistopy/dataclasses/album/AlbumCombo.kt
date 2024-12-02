@@ -33,4 +33,4 @@ data class AlbumCombo(
     override val artists: List<AlbumArtistCredit>,
     @ColumnInfo("AlbumCombo_unplayableTrackCount") override val unplayableTrackCount: Int,
     @ColumnInfo("AlbumCombo_isDownloadable") override val isDownloadable: Boolean,
-) : ISavedAlbumCombo, IAlbumCombo<Album>
+) : IAlbumCombo<Album>

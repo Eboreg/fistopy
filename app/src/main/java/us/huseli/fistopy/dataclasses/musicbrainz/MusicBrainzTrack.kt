@@ -22,8 +22,24 @@ data class MusicBrainzTrack(
     override fun toTrackCombo(
         isInLibrary: Boolean,
         album: UnsavedAlbum?,
-        albumArtists: List<IAlbumArtistCredit>?,
-        albumPosition: Int?
+        albumArtists: Iterable<IAlbumArtistCredit>?,
+        albumPosition: Int?,
+    ): ExternalTrackCombo<MusicBrainzTrack> {
+        return this.toTrackCombo(
+            isInLibrary = isInLibrary,
+            album = album,
+            albumArtists = albumArtists ?: emptyList(),
+            discNumber = null,
+            albumPosition = albumPosition,
+        )
+    }
+
+    fun toTrackCombo(
+        isInLibrary: Boolean,
+        album: UnsavedAlbum? = null,
+        albumArtists: Iterable<IAlbumArtistCredit> = emptyList(),
+        discNumber: Int? = null,
+        albumPosition: Int? = null,
     ): ExternalTrackCombo<MusicBrainzTrack> {
         val track = Track(
             musicBrainzId = recording.id,
@@ -31,8 +47,9 @@ data class MusicBrainzTrack(
             year = year,
             title = title,
             durationMs = length.toLong(),
-            albumPosition = number.toIntOrNull() ?: albumPosition,
+            albumPosition = number.toIntOrNull() ?: albumPosition ?: position,
             albumId = album?.albumId,
+            discNumber = discNumber,
         )
 
         return ExternalTrackCombo(
@@ -40,7 +57,7 @@ data class MusicBrainzTrack(
             album = album,
             track = track,
             trackArtists = artistCredit.toNativeTrackArtists(trackId = track.trackId),
-            albumArtists = albumArtists ?: emptyList(),
+            albumArtists = albumArtists.toList(),
         )
     }
 }

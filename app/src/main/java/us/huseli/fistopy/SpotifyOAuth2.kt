@@ -15,8 +15,8 @@ import kotlinx.coroutines.launch
 import us.huseli.fistopy.Constants.PREF_SPOTIFY_CODE_VERIFIER
 import us.huseli.fistopy.Constants.PREF_SPOTIFY_OAUTH2_TOKEN_CC
 import us.huseli.fistopy.Constants.PREF_SPOTIFY_OAUTH2_TOKEN_PKCE
-import us.huseli.fistopy.dataclasses.OAuth2Token
-import us.huseli.fistopy.dataclasses.RefreshableOAuth2Token
+import us.huseli.fistopy.dataclasses.oauth2.OAuth2Token
+import us.huseli.fistopy.dataclasses.oauth2.RefreshableOAuth2Token
 import us.huseli.fistopy.interfaces.ILogger
 import java.security.MessageDigest
 import java.util.Base64

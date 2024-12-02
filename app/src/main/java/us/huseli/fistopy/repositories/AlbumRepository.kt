@@ -30,6 +30,8 @@ class AlbumRepository @Inject constructor(database: Database) : AbstractScopeHol
 
     suspend fun clearTags() = onIOThread { albumDao.clearTags() }
 
+    suspend fun deleteHiddenNonLocalAlbums() = onIOThread { albumDao.deleteHiddenNonLocalAlbums() }
+
     suspend fun deleteTempAlbums() = onIOThread { albumDao.deleteTempAlbums() }
 
     fun flowAlbumCombo(albumId: String): Flow<AlbumCombo?> = albumDao.flowAlbumCombo(albumId)

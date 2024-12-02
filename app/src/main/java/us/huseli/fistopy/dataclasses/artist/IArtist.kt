@@ -18,7 +18,3 @@ interface IArtist {
         image = image,
     )
 }
-
-interface ISavedArtist {
-    val artistId: String
-}

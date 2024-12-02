@@ -123,7 +123,7 @@ class RadioTrackChannel(val radio: RadioCombo, private val repos: Repositories) 
     private fun nextIsLibraryTrack(): Boolean = Random.nextFloat() >= repos.settings.libraryRadioNovelty.value
 
     private suspend fun spotifyTrackToQueueTrackCombo(spotifyTrack: SpotifyTrack): QueueTrackCombo? {
-        val unsavedAlbum = spotifyTrack.album.toAlbum()
+        val unsavedAlbum = spotifyTrack.album.toAlbum(isInLibrary = false, isLocal = false)
         val trackCombo = spotifyTrack.toTrackCombo(album = unsavedAlbum)
         val track = repos.youtube.getBestTrackMatch(trackCombo)
         val playUri = track?.playUri

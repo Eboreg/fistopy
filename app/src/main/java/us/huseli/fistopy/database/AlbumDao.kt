@@ -96,6 +96,14 @@ abstract class AlbumDao {
 
     @Query(
         """
+        DELETE FROM Album WHERE Album_isHidden = 1 AND Album_isLocal = 0
+        AND NOT EXISTS(SELECT * FROM QueueTrackCombo WHERE QueueTrackCombo.Album_albumId = Album.Album_albumId)
+        """
+    )
+    abstract suspend fun deleteHiddenNonLocalAlbums()
+
+    @Query(
+        """
         DELETE FROM Album WHERE Album_isInLibrary = 0
         AND NOT EXISTS(SELECT * FROM QueueTrackCombo WHERE QueueTrackCombo.Album_albumId = Album.Album_albumId)
         """
@@ -317,7 +325,7 @@ abstract class AlbumDao {
     @Query("UPDATE Album SET Album_isLocal = :isLocal WHERE Album_albumId IN (:albumIds)")
     abstract suspend fun setIsLocal(isLocal: Boolean, vararg albumIds: String)
 
-    @Query("UPDATE Album SET Album_isHidden = 0 WHERE Album_isHidden = 1 AND Album_isLocal = 1")
+    @Query("UPDATE Album SET Album_isHidden = 0 WHERE Album_isHidden = 1 AND Album_isLocal = 1 AND Album_isInLibrary = 1")
     abstract suspend fun unhideLocalAlbums()
 
     suspend fun updateAlbumArt(albumId: String, albumArt: MediaStoreImage) =

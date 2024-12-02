@@ -1,13 +1,16 @@
 package us.huseli.fistopy.dataclasses.musicbrainz
 
-import us.huseli.retaintheme.extensions.capitalized
 import us.huseli.fistopy.dataclasses.tag.Tag
+import us.huseli.retaintheme.extensions.capitalized
 
 data class MusicBrainzGenre(
     val count: Int,
     override val id: String,
     val name: String,
-) : AbstractMusicBrainzItem()
+) : AbstractMusicBrainzItem() {
+    override fun equals(other: Any?) = other is MusicBrainzGenre && other.id == id
+    override fun hashCode(): Int = 31 * super.hashCode() + id.hashCode()
+}
 
 fun Iterable<MusicBrainzGenre>.toInternal(): List<Tag> =
     map { Tag(name = capitalizeGenreName(it.name), isMusicBrainzGenre = true) }

@@ -27,4 +27,4 @@ data class AlbumWithTracksCombo(
     override val trackCombos: List<TrackCombo> = emptyList<TrackCombo>().let { combos ->
         combos.map { it.copy(albumArtists = artists) }
     },
-) : IAlbumWithTracksCombo<Album, AlbumWithTracksCombo>, ISavedAlbumCombo
+) : IAlbumWithTracksCombo<Album, AlbumWithTracksCombo>

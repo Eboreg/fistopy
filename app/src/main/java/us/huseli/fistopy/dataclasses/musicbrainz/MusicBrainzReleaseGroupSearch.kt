@@ -38,23 +38,21 @@ data class MusicBrainzReleaseGroupSearch(
             isInLibrary: Boolean,
             albumId: String,
         ): ExternalAlbumWithTracksCombo<ReleaseGroup> {
-            val album = UnsavedAlbum(
-                title = title,
-                year = year,
-                musicBrainzReleaseGroupId = id,
-                albumType = albumType,
-                isLocal = isLocal,
-                isInLibrary = isInLibrary,
-                albumId = albumId,
+            val builder = ExternalAlbumWithTracksCombo.Builder(
+                album = UnsavedAlbum(
+                    title = title,
+                    year = year,
+                    musicBrainzReleaseGroupId = id,
+                    albumType = albumType,
+                    isLocal = isLocal,
+                    isInLibrary = isInLibrary,
+                    albumId = albumId,
+                ),
+                externalData = this,
+                artists = artistCredit.toNativeArtists(),
             )
 
-            return ExternalAlbumWithTracksCombo(
-                externalData = this,
-                album = album,
-                tags = emptyList(),
-                trackCombos = emptyList(),
-                artists = artistCredit.toNativeAlbumArtists(album.albumId),
-            )
+            return builder.build()
         }
     }
 }

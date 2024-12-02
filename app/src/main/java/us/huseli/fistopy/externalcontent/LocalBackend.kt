@@ -33,8 +33,13 @@ class LocalBackend(
             Channel<ExternalAlbumWithTracksCombo<UnsavedAlbum>>().also { channel ->
                 launchOnIOThread {
                     _importDirectoryFile.filterNotNull().collectLatest { documentFile ->
+                        val existingAlbumCombos = repos.album.listAlbumCombos()
                         val existingTrackUris = repos.track.listTrackLocalUris()
-                        val albumChannel = repos.localMedia.importableAlbumsChannel(documentFile, existingTrackUris)
+                        val albumChannel = repos.localMedia.importableAlbumsChannel(
+                            treeDocumentFile = documentFile,
+                            existingTrackUris = existingTrackUris,
+                            existingAlbumCombos = existingAlbumCombos,
+                        )
 
                         _items.value = emptyList()
                         _allItemsFetched.value = false

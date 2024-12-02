@@ -1,7 +1,7 @@
 package us.huseli.fistopy.dataclasses.lastfm
 
 import com.google.gson.annotations.SerializedName
-import us.huseli.fistopy.dataclasses.artist.UnsavedAlbumArtistCredit
+import us.huseli.fistopy.dataclasses.artist.UnsavedArtistCredit
 
 data class LastFmArtist(
     val mbid: String,
@@ -9,6 +9,5 @@ data class LastFmArtist(
     val name: String,
     val image: List<LastFmImage>? = null,
 ) {
-    fun toNativeAlbumArtist(albumId: String) =
-        UnsavedAlbumArtistCredit(name = name, albumId = albumId, musicBrainzId = mbid)
+    fun toNativeArtist() = UnsavedArtistCredit(name = name, musicBrainzId = mbid, image = image?.toMediaStoreImage())
 }

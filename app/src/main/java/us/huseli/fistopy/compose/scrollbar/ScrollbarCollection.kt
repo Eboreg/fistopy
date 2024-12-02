@@ -40,8 +40,8 @@ fun ScrollbarCollection(
     BoxWithConstraints {
         val density = LocalDensity.current
 
-        LaunchedEffect(maxHeight) {
-            state.viewportHeight = with(density) { maxHeight.toPx() }
+        LaunchedEffect(this.maxHeight) {
+            state.viewportHeight = with(density) { this@BoxWithConstraints.maxHeight.toPx() }
         }
 
         LaunchedEffect(minHandleHeight) {

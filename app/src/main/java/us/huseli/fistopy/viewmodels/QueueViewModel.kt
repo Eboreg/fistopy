@@ -1,6 +1,7 @@
 package us.huseli.fistopy.viewmodels
 
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +35,8 @@ class QueueViewModel @Inject constructor(
 
     private val trackStateHandler =
         object : AbstractTrackUiStateListHandler<TrackUiState>(key = "queue", repos = repos, managers = managers) {
-            override val baseItems: Flow<List<TrackUiState>> = _queue.map { it.toUiStates() }
+            override val baseItems: Flow<List<TrackUiState>>
+                get() = _queue.map { it.toUiStates() }
 
             override fun enqueueSelectedTracks() {
                 launchOnMainThread { managers.player.moveTracksNext(queueTrackIds = getSortedSelectedItems().map { it.id }) }
@@ -69,8 +71,8 @@ class QueueViewModel @Inject constructor(
     }.stateWhileSubscribed(true)
     val radioUiState: StateFlow<RadioUiState?> =
         managers.radio.radioUiState.distinctUntilChanged().stateWhileSubscribed()
-    val selectedTrackCount = trackStateHandler.selectedItemCount
-    val trackUiStates = trackStateHandler.items
+    val selectedTrackCount = trackStateHandler.selectedItemCount.stateWhileSubscribed(0)
+    val trackUiStates = trackStateHandler.items.stateWhileSubscribed(persistentListOf())
 
     init {
         launchOnIOThread {

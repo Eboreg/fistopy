@@ -1,8 +1,8 @@
 package us.huseli.fistopy.compose.album
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.glance.text.Text
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.StateFlow
 import us.huseli.fistopy.AlbumDownloadTask

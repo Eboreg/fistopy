@@ -35,45 +35,47 @@ class LibraryViewModel @Inject constructor(
 ) : AbstractBaseViewModel() {
     private val albumStateHandler =
         object : AbstractAlbumUiStateListHandler<AlbumUiState>(key = "library", repos = repos, managers = managers) {
-            override val baseItems: Flow<List<AlbumUiState>> = combine(
-                repos.settings.albumSortParameter,
-                repos.settings.albumSortOrder,
-                repos.settings.albumSearchTerm,
-                repos.settings.libraryAlbumTagFilter,
-                repos.settings.libraryAvailabilityFilter,
-            ) { sortParameter, sortOrder, searchTerm, tagPojos, availability ->
-                repos.album.flowAlbumUiStates(
-                    sortParameter = sortParameter,
-                    sortOrder = sortOrder,
-                    searchTerm = searchTerm,
-                    tagNames = tagPojos.map { it.name },
-                    availabilityFilter = availability,
-                )
-            }.flattenMerge()
+            override val baseItems: Flow<List<AlbumUiState>>
+                get() = combine(
+                    repos.settings.albumSortParameter,
+                    repos.settings.albumSortOrder,
+                    repos.settings.albumSearchTerm,
+                    repos.settings.libraryAlbumTagFilter,
+                    repos.settings.libraryAvailabilityFilter,
+                ) { sortParameter, sortOrder, searchTerm, tagPojos, availability ->
+                    repos.album.flowAlbumUiStates(
+                        sortParameter = sortParameter,
+                        sortOrder = sortOrder,
+                        searchTerm = searchTerm,
+                        tagNames = tagPojos.map { it.name },
+                        availabilityFilter = availability,
+                    )
+                }.flattenMerge()
         }
 
     private val trackStateHandler =
         object : AbstractTrackUiStateListHandler<TrackUiState>(key = "library", repos = repos, managers = managers) {
-            override val baseItems: Flow<List<TrackUiState>> = combine(
-                repos.settings.trackSortParameter,
-                repos.settings.trackSortOrder,
-                repos.settings.trackSearchTerm,
-                repos.settings.libraryTrackTagFilter,
-                repos.settings.libraryAvailabilityFilter,
-            ) { sortParameter, sortOrder, searchTerm, tagPojos, availability ->
-                repos.track.flowTrackUiStates(
-                    sortParameter = sortParameter,
-                    sortOrder = sortOrder,
-                    searchTerm = searchTerm,
-                    tagNames = tagPojos.map { it.name },
-                    availabilityFilter = availability,
-                )
-            }.flattenMerge()
+            override val baseItems: Flow<List<TrackUiState>>
+                get() = combine(
+                    repos.settings.trackSortParameter,
+                    repos.settings.trackSortOrder,
+                    repos.settings.trackSearchTerm,
+                    repos.settings.libraryTrackTagFilter,
+                    repos.settings.libraryAvailabilityFilter,
+                ) { sortParameter, sortOrder, searchTerm, tagPojos, availability ->
+                    repos.track.flowTrackUiStates(
+                        sortParameter = sortParameter,
+                        sortOrder = sortOrder,
+                        searchTerm = searchTerm,
+                        tagNames = tagPojos.map { it.name },
+                        availabilityFilter = availability,
+                    )
+                }.flattenMerge()
         }
 
     val albumSearchTerm = repos.settings.albumSearchTerm
     val albumSortOrder = repos.settings.albumSortOrder
-    val albumUiStates = albumStateHandler.items
+    val albumUiStates = albumStateHandler.items.stateWhileSubscribed(persistentListOf())
     val albumSortParameter = repos.settings.albumSortParameter
     val availabilityFilter = repos.settings.libraryAvailabilityFilter
     val displayType = repos.settings.libraryDisplayType
@@ -83,14 +85,14 @@ class LibraryViewModel @Inject constructor(
     val isLocalMediaDirConfigured: StateFlow<Boolean> =
         repos.settings.localMusicUri.map { it != null }.stateWhileSubscribed(false)
     val listType = repos.settings.libraryListType
-    val selectedAlbumCount = albumStateHandler.selectedItemCount
+    val selectedAlbumCount = albumStateHandler.selectedItemCount.stateWhileSubscribed(0)
     val selectedAlbumTagPojos = repos.settings.libraryAlbumTagFilter
-    val selectedTrackCount = trackStateHandler.selectedItemCount
+    val selectedTrackCount = trackStateHandler.selectedItemCount.stateWhileSubscribed(0)
     val selectedTrackTagPojos = repos.settings.libraryTrackTagFilter
     val trackSearchTerm = repos.settings.trackSearchTerm
     val trackSortOrder = repos.settings.trackSortOrder
     val trackSortParameter = repos.settings.trackSortParameter
-    val trackUiStates = trackStateHandler.items
+    val trackUiStates = trackStateHandler.items.stateWhileSubscribed(persistentListOf())
 
     val albumTagPojos = repos.settings.libraryAvailabilityFilter.flatMapLatest { repos.album.flowTagPojos(it) }
         .map { it.toImmutableList() }

@@ -6,12 +6,11 @@ import us.huseli.fistopy.dataclasses.artist.joined
 import us.huseli.fistopy.dataclasses.tag.Tag
 import us.huseli.fistopy.dataclasses.track.ITrackCombo
 import us.huseli.fistopy.dataclasses.track.Track
-import us.huseli.fistopy.dataclasses.track.UnsavedTrackCombo
 import us.huseli.fistopy.dataclasses.track.asUnsavedTrackCombos
+import us.huseli.fistopy.dataclasses.track.mergeWith
 import us.huseli.fistopy.enums.ListUpdateStrategy
 import us.huseli.fistopy.enums.OnConflictStrategy
 import us.huseli.fistopy.enums.TrackMergeStrategy
-import kotlin.math.max
 import kotlin.math.min
 
 interface IAlbumWithTracksCombo<A : IAlbum, T : IAlbumWithTracksCombo<A, T>> : IAlbumCombo<A> {
@@ -141,37 +140,24 @@ interface IAlbumWithTracksCombo<A : IAlbum, T : IAlbumWithTracksCombo<A, T>> : I
 
     @Suppress("MemberVisibilityCanBePrivate")
     class Builder(combo: IAlbumWithTracksCombo<*, *>) {
-        private var album = combo.album.asUnsavedAlbum()
-        private var artists = combo.artists
-        private var tags = combo.tags
-        private var trackCombos = combo.trackCombos.asUnsavedTrackCombos()
+        var album = combo.album.asUnsavedAlbum()
+            private set
+        var artists = combo.artists
+            private set
+        var tags = combo.tags
+            private set
+        var trackCombos = combo.trackCombos.asUnsavedTrackCombos()
+            private set
 
         fun build(): UnsavedAlbumWithTracksCombo = UnsavedAlbumWithTracksCombo(
-            album = album.asUnsavedAlbum(),
+            album = album,
             artists = artists,
             tags = tags,
             trackCombos = trackCombos,
         )
 
         fun mergeAlbum(other: IAlbum, onConflictStrategy: OnConflictStrategy = OnConflictStrategy.USE_OTHER) = apply {
-            album = when (onConflictStrategy) {
-                OnConflictStrategy.USE_THIS -> album.copy(
-                    albumArt = album.albumArt ?: other.albumArt,
-                    albumType = album.albumType ?: other.albumType,
-                    musicBrainzReleaseId = album.musicBrainzReleaseId ?: other.musicBrainzReleaseId,
-                    musicBrainzReleaseGroupId = album.musicBrainzReleaseGroupId ?: other.musicBrainzReleaseGroupId,
-                    spotifyId = album.spotifyId ?: other.spotifyId,
-                    youtubePlaylist = album.youtubePlaylist ?: other.youtubePlaylist,
-                )
-                OnConflictStrategy.USE_OTHER -> album.copy(
-                    albumArt = other.albumArt ?: album.albumArt,
-                    albumType = other.albumType ?: album.albumType,
-                    musicBrainzReleaseGroupId = other.musicBrainzReleaseGroupId ?: album.musicBrainzReleaseGroupId,
-                    musicBrainzReleaseId = other.musicBrainzReleaseId ?: album.musicBrainzReleaseId,
-                    spotifyId = other.spotifyId ?: album.spotifyId,
-                    youtubePlaylist = other.youtubePlaylist ?: album.youtubePlaylist,
-                )
-            }
+            album = album.mergeWith(other, onConflictStrategy)
         }
 
         fun mergeArtists(
@@ -196,58 +182,9 @@ interface IAlbumWithTracksCombo<A : IAlbum, T : IAlbumWithTracksCombo<A, T>> : I
             mergeStrategy: TrackMergeStrategy,
             artistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
         ) = apply {
-            val mergedTrackCombos = mutableListOf<UnsavedTrackCombo>()
-
-            for (i in 0 until max(trackCombos.size, other.size)) {
-                val thisTrackCombo = trackCombos.find { it.track.albumPosition == i + 1 }
-                val otherTrackCombo = other.find { it.track.albumPosition == i + 1 }
-
-                if (thisTrackCombo != null && otherTrackCombo != null) {
-                    val trackArtists = otherTrackCombo.trackArtists
-                        .map { it.withTrackId(trackId = thisTrackCombo.track.trackId) }
-                        .toMutableSet()
-                    if (artistUpdateStrategy == ListUpdateStrategy.MERGE) trackArtists.addAll(thisTrackCombo.trackArtists)
-
-                    mergedTrackCombos.add(
-                        UnsavedTrackCombo(
-                            track = otherTrackCombo.track.copy(
-                                musicBrainzId = otherTrackCombo.track.musicBrainzId
-                                    ?: thisTrackCombo.track.musicBrainzId,
-                                trackId = thisTrackCombo.track.trackId,
-                                albumId = thisTrackCombo.track.albumId,
-                                localUri = otherTrackCombo.track.localUri ?: thisTrackCombo.track.localUri,
-                                spotifyId = otherTrackCombo.track.spotifyId ?: thisTrackCombo.track.spotifyId,
-                                youtubeVideo = otherTrackCombo.track.youtubeVideo ?: thisTrackCombo.track.youtubeVideo,
-                                metadata = otherTrackCombo.track.metadata ?: thisTrackCombo.track.metadata,
-                                image = otherTrackCombo.track.image ?: thisTrackCombo.track.image,
-                                durationMs = otherTrackCombo.track.durationMs ?: thisTrackCombo.track.durationMs,
-                            ),
-                            album = album,
-                            trackArtists = trackArtists.toList(),
-                            albumArtists = otherTrackCombo.albumArtists,
-                        )
-                    )
-                } else if (
-                    thisTrackCombo != null &&
-                    (mergeStrategy == TrackMergeStrategy.KEEP_SELF || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
-                ) {
-                    mergedTrackCombos.add(thisTrackCombo)
-                } else if (
-                    otherTrackCombo != null &&
-                    (mergeStrategy == TrackMergeStrategy.KEEP_OTHER || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
-                ) {
-                    mergedTrackCombos.add(
-                        UnsavedTrackCombo(
-                            track = otherTrackCombo.track.copy(albumId = album.albumId),
-                            album = album,
-                            trackArtists = otherTrackCombo.trackArtists,
-                            albumArtists = otherTrackCombo.albumArtists,
-                        )
-                    )
-                }
+            trackCombos = trackCombos.mergeWith(other, mergeStrategy, artistUpdateStrategy).map { combo ->
+                combo.copy(album = album, track = combo.track.copy(albumId = album.albumId))
             }
-
-            trackCombos = mergedTrackCombos.toList()
             updateTrackCount(trackCombos.size)
         }
 
@@ -257,20 +194,13 @@ interface IAlbumWithTracksCombo<A : IAlbum, T : IAlbumWithTracksCombo<A, T>> : I
 
         fun setIsInLibrary(value: Boolean) = apply {
             updateAlbum { it.copy(isInLibrary = value) }
-            updateEachTrack { it.copy(isInLibrary = value) }
+            trackCombos = trackCombos.map { it.copy(track = it.track.copy(isInLibrary = value)) }
         }
 
-        fun updateAlbum(callback: (UnsavedAlbum) -> UnsavedAlbum) = apply {
-            album = callback(album)
-            updateEachTrackCombo { it.copy(album = album) }
-        }
-
-        fun updateEachTrack(callback: (Track) -> Track) = apply {
-            trackCombos = trackCombos.map { it.copy(track = callback(it.track)) }
-        }
-
-        fun updateEachTrackCombo(callback: (UnsavedTrackCombo) -> UnsavedTrackCombo) = apply {
-            trackCombos = trackCombos.map(callback)
+        fun updateAlbum(callback: (UnsavedAlbum) -> UnsavedAlbum?) = apply {
+            callback(album)?.also { album = it }
+            trackCombos = trackCombos.map { it.copy(album = album, track = it.track.copy(albumId = album.albumId)) }
+            artists = artists.map { it.withAlbumId(album.albumId) }
         }
 
         fun updateTracks(callback: (List<Track>) -> List<Track>) = apply {

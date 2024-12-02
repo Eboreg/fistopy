@@ -22,16 +22,19 @@ import us.huseli.fistopy.copyTo
 import us.huseli.fistopy.dataclasses.ID3Data
 import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.IAlbum
+import us.huseli.fistopy.dataclasses.album.IAlbumCombo
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
 import us.huseli.fistopy.dataclasses.artist.ArtistTitlePair
 import us.huseli.fistopy.dataclasses.artist.IArtistCredit
 import us.huseli.fistopy.dataclasses.artist.UnsavedAlbumArtistCredit
+import us.huseli.fistopy.dataclasses.artist.joined
 import us.huseli.fistopy.dataclasses.extractID3Data
 import us.huseli.fistopy.dataclasses.toMediaStoreImage
 import us.huseli.fistopy.dataclasses.track.LocalImportableTrack
 import us.huseli.fistopy.dataclasses.track.Track
 import us.huseli.fistopy.dataclasses.track.extractTrackMetadata
 import us.huseli.fistopy.enums.AlbumType
+import us.huseli.fistopy.enums.ListUpdateStrategy
 import us.huseli.fistopy.escapeQuotes
 import us.huseli.fistopy.interfaces.ILogger
 import us.huseli.retaintheme.extensions.combineEquals
@@ -108,6 +111,7 @@ class LocalMediaRepository @Inject constructor(@ApplicationContext private val c
         treeDocumentFile: DocumentFile,
         existingTrackUris: Collection<Uri>,
         channel: Channel<ExternalAlbumWithTracksCombo<UnsavedAlbum>>,
+        existingAlbumCombos: Collection<IAlbumCombo<*>> = emptyList(),
     ) {
         val tracks = mutableListOf<LocalImportableTrack>()
         val pathData = ArtistTitlePair.fromDirectory(treeDocumentFile)
@@ -116,7 +120,7 @@ class LocalMediaRepository @Inject constructor(@ApplicationContext private val c
         treeDocumentFile.listFiles().forEach { documentFile ->
             if (documentFile.isDirectory) {
                 // Go through subdirectories recursively:
-                getImportableAlbums(documentFile, existingTrackUris, channel)
+                getImportableAlbums(documentFile, existingTrackUris, channel, existingAlbumCombos)
             } else if (documentFile.isFile && !existingTrackUris.contains(documentFile.uri)) {
                 // Just to avoid copying lots of irrelevant files:
                 val mimeTypeGuess = MimeTypeMap.getSingleton().getMimeTypeFromExtension(documentFile.extension)
@@ -190,33 +194,38 @@ class LocalMediaRepository @Inject constructor(@ApplicationContext private val c
                 year = albumTracks.mapNotNull { it.id3.year }.toSet().takeIf { it.size == 1 }?.first(),
                 trackCount = albumTracks.size,
                 isLocal = true,
+                isInLibrary = true,
             )
             val albumArtists = albumArtist
                 ?.takeIf { it.lowercase() != "various artists" }
                 ?.let { listOf(UnsavedAlbumArtistCredit(name = it, albumId = albumId)) }
                 ?: emptyList()
+            val existingCombo = existingAlbumCombos.find {
+                (it.album.title == album.title && it.artists.joined() == albumArtists.joined()) ||
+                    (it.album.musicBrainzReleaseId != null && it.album.musicBrainzReleaseId == album.musicBrainzReleaseId)
+            }
+            val builder =
+                ExternalAlbumWithTracksCombo.Builder(album = album, externalData = album, tracks = albumTracks, artists = albumArtists)
 
-            channel.send(
-                ExternalAlbumWithTracksCombo(
-                    album = album,
-                    artists = albumArtists,
-                    tags = emptyList(),
-                    trackCombos = albumTracks.map { it.toTrackCombo(album = album, albumArtists = albumArtists) },
-                    externalData = album,
-                )
-            )
+            existingCombo?.also {
+                builder.mergeWithExistingAlbum(it.album)
+                builder.mergeArtists(it.artists, ListUpdateStrategy.MERGE)
+            }
+            channel.send(builder.build())
         }
     }
 
     fun importableAlbumsChannel(
         treeDocumentFile: DocumentFile,
         existingTrackUris: Collection<Uri>,
+        existingAlbumCombos: Collection<IAlbumCombo<*>> = emptyList(),
     ) = Channel<ExternalAlbumWithTracksCombo<UnsavedAlbum>>().also { channel ->
         launchOnIOThread {
             getImportableAlbums(
                 treeDocumentFile = treeDocumentFile,
                 existingTrackUris = existingTrackUris,
                 channel = channel,
+                existingAlbumCombos = existingAlbumCombos,
             )
             channel.close()
         }

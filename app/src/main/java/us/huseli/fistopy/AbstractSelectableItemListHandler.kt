@@ -1,11 +1,9 @@
 package us.huseli.fistopy
 
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -37,19 +35,16 @@ abstract class AbstractSelectableItemListHandler<out T : ISelectableItem>(
 
     val isLoadingItems = _isLoadingItems.asStateFlow()
 
-    val itemCount: StateFlow<Int>
-        get() = baseItems.map { it.size }.stateWhileSubscribed(0)
-
-    val selectedItemCount: StateFlow<Int>
-        get() = selectedItemIds.map { it.size }.stateWhileSubscribed(0)
+    val selectedItemCount: Flow<Int>
+        get() = selectedItemIds.map { it.size }
 
     @Suppress("UNCHECKED_CAST")
-    val items: StateFlow<ImmutableList<T>>
+    val items: Flow<ImmutableList<T>>
         get() = combine(baseItems, selectedItemIds) { items, selectedIds ->
             items
                 .map { item -> item.withIsSelected(selectedIds.contains(item.id)) as T }
                 .toImmutableList()
-        }.onEach { _isLoadingItems.value = false }.stateWhileSubscribed(persistentListOf())
+        }.onEach { _isLoadingItems.value = false }
 
     open fun onItemClick(itemId: String, default: (String) -> Unit) {
         launchOnMainThread {
@@ -122,8 +117,8 @@ abstract class AbstractAlbumUiStateListHandler<T : IAlbumUiState>(
         onEnqueueClick = { withSelectedItemIds { managers.player.enqueueAlbums(it) } },
         onExportClick = { withSelectedItemIds(dialogCallbacks.onExportAlbumsClick) },
         onPlayClick = { withSelectedItemIds { managers.player.playAlbums(it) } },
-        onSelectAllClick = { setItemsIsSelected(items.value.map { it.id }, true) },
-        onUnselectAllClick = { setItemsIsSelected(items.value.map { it.id }, false) },
+        onSelectAllClick = { launchOnMainThread { setItemsIsSelected(baseItems.first().map { it.id }, true) } },
+        onUnselectAllClick = { unselectAllItems() },
     )
 }
 
@@ -142,8 +137,8 @@ abstract class AbstractTrackUiStateListHandler<out T : ISelectableTrackUiState>(
         onEnqueueClick = { enqueueSelectedTracks() },
         onExportClick = { withSelectedItemIds(dialogCallbacks.onExportTracksClick) },
         onPlayClick = { playSelectedTracks() },
-        onSelectAllClick = { setItemsIsSelected(items.value.map { it.id }, true) },
-        onUnselectAllClick = { setItemsIsSelected(items.value.map { it.id }, false) },
+        onSelectAllClick = { selectAllItems() },
+        onUnselectAllClick = { unselectAllItems() },
     )
 
     fun onTrackClick(state: AbstractTrackUiState) {

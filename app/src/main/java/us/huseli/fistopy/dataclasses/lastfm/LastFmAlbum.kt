@@ -22,24 +22,22 @@ data class LastFmAlbum(
         isInLibrary: Boolean,
         albumId: String,
     ): ExternalAlbumWithTracksCombo<LastFmAlbum> {
-        val album = UnsavedAlbum(
-            albumArt = image.toMediaStoreImage(),
-            albumType = if (artist.name.lowercase() == "various artists") AlbumType.COMPILATION else null,
-            musicBrainzReleaseId = mbid,
-            title = name,
-            isLocal = isLocal,
-            isInLibrary = isInLibrary,
-            albumId = albumId,
+        val builder = ExternalAlbumWithTracksCombo.Builder(
+            album = UnsavedAlbum(
+                albumArt = image.toMediaStoreImage(),
+                albumType = if (artist.name.lowercase() == "various artists") AlbumType.COMPILATION else null,
+                musicBrainzReleaseId = mbid,
+                title = name,
+                isLocal = isLocal,
+                isInLibrary = isInLibrary,
+                albumId = albumId,
+            ),
+            externalData = this,
+            artists = listOf(artist.toNativeArtist()),
+            playCount = playCount?.toIntOrNull(),
         )
 
-        return ExternalAlbumWithTracksCombo(
-            album = album,
-            artists = listOf(artist.toNativeAlbumArtist(album.albumId)),
-            tags = emptyList(),
-            trackCombos = emptyList(),
-            externalData = this,
-            playCount = playCount?.toInt(),
-        )
+        return builder.build()
     }
 
     override fun toString(): String = artist.name.takeIf { it.isNotEmpty() }?.let { "$it - $name" } ?: name

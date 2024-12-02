@@ -2,6 +2,7 @@ package us.huseli.fistopy.viewmodels
 
 import android.net.Uri
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,11 +42,12 @@ class ExternalAlbumImportViewModel @Inject constructor(
         repos = repos,
         managers = managers,
     ) {
-        override val baseItems: StateFlow<List<ImportableAlbumUiState>> = _holder
-            .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
-            .stateWhileSubscribed(persistentListOf())
+        override val baseItems: Flow<ImmutableList<ImportableAlbumUiState>>
+            get() = _holder
+                .flatMapLatest { it.currentPageItems.map { states -> states.toImmutableList() } }
 
-        override val selectedItemIds: Flow<List<String>> = _holder.flatMapLatest { it.selectedItemIds }
+        override val selectedItemIds: Flow<List<String>>
+            get() = _holder.flatMapLatest { it.selectedItemIds }
 
         override fun setItemsIsSelected(itemIds: Iterable<String>, value: Boolean) =
             currentBackend.albumImportHolder.setItemsIsSelected(itemIds, value)
@@ -56,10 +58,10 @@ class ExternalAlbumImportViewModel @Inject constructor(
     private val currentBackend: IExternalImportBackend
         get() = managers.external.getImportBackend(_backendKey.value)
 
-    val albumUiStates = albumStateHandler.items
+    val albumUiStates = albumStateHandler.items.stateWhileSubscribed(persistentListOf())
     val backendKey = _backendKey.asStateFlow()
     val canImport = _holder.flatMapLatest { it.canImport }.stateWhileSubscribed(false)
-    val currentAlbumCount = albumStateHandler.itemCount
+    val currentAlbumCount = albumStateHandler.baseItems.map { it.size }.stateWhileSubscribed(0)
     val displayOffset = _holder.flatMapLatest { it.displayOffset }.stateWhileSubscribed(0)
     val hasNextPage = _holder.flatMapLatest { it.hasNextPage }.stateWhileSubscribed(false)
     val hasPreviousPage =
@@ -72,7 +74,7 @@ class ExternalAlbumImportViewModel @Inject constructor(
         _holder.flatMapLatest { it.isTotalCountExact }.stateWhileSubscribed(false)
     val progress = managers.external.albumImportProgress.stateWhileSubscribed(ProgressData())
     val searchTerm = _holder.flatMapLatest { it.searchTerm }.stateWhileSubscribed("")
-    val selectedAlbumCount = albumStateHandler.selectedItemCount
+    val selectedAlbumCount = albumStateHandler.selectedItemCount.stateWhileSubscribed(0)
     val totalItemCount = _holder.flatMapLatest { it.totalItemCount }.stateWhileSubscribed(0)
 
     val isImportButtonEnabled =

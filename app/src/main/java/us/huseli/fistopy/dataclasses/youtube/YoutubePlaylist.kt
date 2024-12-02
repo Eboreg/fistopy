@@ -8,7 +8,6 @@ import us.huseli.fistopy.dataclasses.MediaStoreImage
 import us.huseli.fistopy.dataclasses.album.ExternalAlbumWithTracksCombo
 import us.huseli.fistopy.dataclasses.album.IExternalAlbumWithTracksProducer
 import us.huseli.fistopy.dataclasses.album.UnsavedAlbum
-import us.huseli.fistopy.dataclasses.artist.UnsavedAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.toMediaStoreImage
 import us.huseli.fistopy.enums.AlbumType
 import us.huseli.fistopy.interfaces.IStringIdItem
@@ -37,28 +36,22 @@ data class YoutubePlaylist(
         isInLibrary: Boolean,
         albumId: String,
     ): ExternalAlbumWithTracksCombo<YoutubePlaylist> {
-        val album = UnsavedAlbum(
-            albumArt = getMediaStoreImage(),
-            albumId = albumId,
-            albumType = albumType,
-            isInLibrary = isInLibrary,
-            isLocal = isLocal,
-            title = title,
-            trackCount = videoCount,
-            youtubePlaylist = this,
-        )
-        val albumArtists = artist
-            ?.takeIf { it.lowercase() != "various artists" }
-            ?.let { listOf(UnsavedAlbumArtistCredit(name = it, albumId = album.albumId)) }
-            ?: emptyList()
-
-        return ExternalAlbumWithTracksCombo(
+        val builder = ExternalAlbumWithTracksCombo.Builder(
+            album = UnsavedAlbum(
+                albumArt = getMediaStoreImage(),
+                albumId = albumId,
+                albumType = albumType,
+                isInLibrary = isInLibrary,
+                isLocal = isLocal,
+                title = title,
+                trackCount = videoCount,
+                youtubePlaylist = this,
+            ),
             externalData = this,
-            album = album,
-            artists = albumArtists,
-            trackCombos = emptyList(),
-            tags = emptyList(),
         )
+
+        artist?.takeIf { it.lowercase() != "various artists" }?.also { builder.setArtist(it) }
+        return builder.build()
     }
 
     override fun toString() = "${artist?.let { "$it - $title" } ?: title} ($videoCount videos)"

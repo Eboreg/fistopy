@@ -3,14 +3,13 @@ package us.huseli.fistopy.dataclasses.track
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import org.apache.commons.text.similarity.LevenshteinDistance
-import us.huseli.fistopy.dataclasses.album.Album
 import us.huseli.fistopy.dataclasses.album.IAlbum
-import us.huseli.fistopy.dataclasses.artist.AlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.IAlbumArtistCredit
 import us.huseli.fistopy.dataclasses.artist.IArtistCredit
 import us.huseli.fistopy.dataclasses.artist.ITrackArtistCredit
-import us.huseli.fistopy.dataclasses.artist.TrackArtistCredit
 import us.huseli.fistopy.dataclasses.artist.joined
+import us.huseli.fistopy.enums.ListUpdateStrategy
+import us.huseli.fistopy.enums.TrackMergeStrategy
 import us.huseli.fistopy.interfaces.IAlbumArtOwner
 import us.huseli.fistopy.interfaces.IHasMusicBrainzIds
 import kotlin.math.absoluteValue
@@ -139,8 +138,66 @@ fun Iterable<ITrackCombo<*>>.asUnsavedTrackCombos() = map { trackCombo ->
     )
 }
 
-interface ISavedTrackCombo<T : ISavedTrackCombo<T>> : ITrackCombo<T> {
-    override val trackArtists: List<TrackArtistCredit>
-    override val albumArtists: List<AlbumArtistCredit>
-    override val album: Album?
+fun Collection<ITrackCombo<*>>.mergeWith(
+    other: Collection<ITrackCombo<*>>,
+    mergeStrategy: TrackMergeStrategy,
+    artistUpdateStrategy: ListUpdateStrategy = ListUpdateStrategy.REPLACE,
+): List<UnsavedTrackCombo> {
+    val mergedTrackCombos = mutableListOf<UnsavedTrackCombo>()
+
+    for (i in 0 until kotlin.math.max(size, other.size)) {
+        val thisTrackCombo = find { it.track.albumPosition == i + 1 }?.let {
+            UnsavedTrackCombo(
+                album = it.album?.asUnsavedAlbum(),
+                albumArtists = it.albumArtists,
+                track = it.track,
+                trackArtists = it.trackArtists,
+            )
+        }
+        val otherTrackCombo = other.find { it.track.albumPosition == i + 1 }
+
+        if (thisTrackCombo != null && otherTrackCombo != null) {
+            val trackArtists = otherTrackCombo.trackArtists
+                .map { it.withTrackId(trackId = thisTrackCombo.track.trackId) }
+                .toMutableSet()
+            if (artistUpdateStrategy == ListUpdateStrategy.MERGE) trackArtists.addAll(thisTrackCombo.trackArtists)
+
+            mergedTrackCombos.add(
+                UnsavedTrackCombo(
+                    track = otherTrackCombo.track.copy(
+                        musicBrainzId = otherTrackCombo.track.musicBrainzId
+                            ?: thisTrackCombo.track.musicBrainzId,
+                        trackId = thisTrackCombo.track.trackId,
+                        albumId = thisTrackCombo.track.albumId,
+                        localUri = otherTrackCombo.track.localUri ?: thisTrackCombo.track.localUri,
+                        spotifyId = otherTrackCombo.track.spotifyId ?: thisTrackCombo.track.spotifyId,
+                        youtubeVideo = otherTrackCombo.track.youtubeVideo ?: thisTrackCombo.track.youtubeVideo,
+                        metadata = otherTrackCombo.track.metadata ?: thisTrackCombo.track.metadata,
+                        image = otherTrackCombo.track.image ?: thisTrackCombo.track.image,
+                        durationMs = otherTrackCombo.track.durationMs ?: thisTrackCombo.track.durationMs,
+                    ),
+                    trackArtists = trackArtists.toList(),
+                    albumArtists = otherTrackCombo.albumArtists,
+                )
+            )
+        } else if (
+            thisTrackCombo != null &&
+            (mergeStrategy == TrackMergeStrategy.KEEP_SELF || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
+        ) {
+            mergedTrackCombos.add(thisTrackCombo)
+        } else if (
+            otherTrackCombo != null &&
+            (mergeStrategy == TrackMergeStrategy.KEEP_OTHER || mergeStrategy == TrackMergeStrategy.KEEP_MOST)
+        ) {
+            mergedTrackCombos.add(
+                UnsavedTrackCombo(
+                    track = otherTrackCombo.track,
+                    trackArtists = otherTrackCombo.trackArtists,
+                    albumArtists = otherTrackCombo.albumArtists,
+                )
+            )
+        }
+    }
+
+    return mergedTrackCombos.toList()
 }

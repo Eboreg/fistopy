@@ -8,7 +8,7 @@ interface IExternalTrackComboProducer<T : IStringIdItem> {
     fun toTrackCombo(
         isInLibrary: Boolean = false,
         album: UnsavedAlbum? = null,
-        albumArtists: List<IAlbumArtistCredit>? = null,
+        albumArtists: Iterable<IAlbumArtistCredit>? = null,
         albumPosition: Int? = null,
     ): ExternalTrackCombo<T>
 }
